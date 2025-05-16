@@ -2,11 +2,10 @@ package com.example.breakfreeBE.challenge.entity;
 
 import com.example.breakfreeBE.userRegistration.entity.User;
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.time.LocalDate;
+import java.util.List;
 
 @Entity
 @Table(name = "challenge")
@@ -17,24 +16,30 @@ public class Challenge {
     @Column(name = "challenge_id", length = 6)
     private String challengeId;
 
-    @Column(name = "user_id", length = 6)
+    @Column(name = "user_id", length = 6, nullable = false)
     private String userId;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", insertable = false, updatable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", referencedColumnName = "user_id", insertable = false, updatable = false)
     @JsonBackReference
     private User user;
 
-    @ManyToOne
-    @JoinColumn(name = "challenge_id", insertable = false, updatable = false)
+    @Column(name = "challenge_data_id", length = 6, nullable = false)
+    private String challengeDataId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "challenge_data_id", referencedColumnName = "challenge_data_id", insertable = false, updatable = false)
     private ChallengeData challengeData;
 
-    private LocalDate startDate;
+    @Column(name = "start_date", nullable = false)
+    private Long startDate;
 
     @Column(name = "times_complete", nullable = false)
     private int timesComplete;
 
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", length = 255, nullable = false)
     private String status;
 
+    @OneToMany(mappedBy = "challenge", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ChallengeProgress> progressList;
 }

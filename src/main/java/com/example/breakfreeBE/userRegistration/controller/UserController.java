@@ -4,8 +4,10 @@ import com.example.breakfreeBE.avatar.dto.AvatarUpdateRequest;
 import com.example.breakfreeBE.avatar.entity.Avatar;
 import com.example.breakfreeBE.common.BaseResponse;
 import com.example.breakfreeBE.common.MetaResponse;
+import com.example.breakfreeBE.userRegistration.dto.UserUpdateRequest;
 import com.example.breakfreeBE.userRegistration.entity.User;
 import com.example.breakfreeBE.userRegistration.service.UserService;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
@@ -112,20 +114,6 @@ public class UserController {
                         new BaseResponse<>(new MetaResponse(false, "User not found"), null)));
     }
 
-    @PutMapping("/update")
-    public ResponseEntity<BaseResponse<Map<String, String>>> updateUsername(@RequestBody UserUpdate request) {
-        if (userService.existsByUsername(request.username)) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(
-                    new BaseResponse<>(new MetaResponse(false, "Username is already taken"), null)
-            );
-        }
-        userService.updateUsername(request.userId, request.username);
-
-        return ResponseEntity.ok(new BaseResponse<>(
-                new MetaResponse(true, "Username updated successfully"), null
-        ));
-    }
-
     @GetMapping("/avatar/view/{userId}")
     public ResponseEntity<BaseResponse<Avatar>> getUserAvatar(@PathVariable String userId) {
         try {
@@ -147,23 +135,6 @@ public class UserController {
         }
     }
 
-
-    @PutMapping("/avatar/update")
-    public ResponseEntity<BaseResponse<String>> updateUserAvatar(
-            @RequestBody AvatarUpdateRequest request
-    ) {
-        try {
-            userService.updateUserAvatar(request.userId, request.avatarId);
-            return ResponseEntity.ok(new BaseResponse<>(
-                    new MetaResponse(true, "Avatar updated successfully"), "Avatar updated"
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-                    new BaseResponse<>(new MetaResponse(false, e.getMessage()), null)
-            );
-        }
-    }
-
     @PostMapping("/avatar/add")
     public ResponseEntity<BaseResponse<String>> addAvatarToUser(
             @RequestBody AvatarUpdateRequest request
@@ -179,4 +150,49 @@ public class UserController {
             );
         }
     }
+
+    @PutMapping("/update")
+    public ResponseEntity<BaseResponse<String>> updateUser(@Valid @RequestBody UserUpdateRequest request) {
+        try {
+            Optional<User> userOpt = userService.getUserById(request.getUserId());
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new BaseResponse<>(new MetaResponse(false, "User not found"), null));
+            }
+
+            List<String> messages = new ArrayList<>();
+
+            // Update username
+            if (request.getUsername() != null && !request.getUsername().isBlank()) {
+                if (userService.existsByUsername(request.getUsername())) {
+                    return ResponseEntity.status(HttpStatus.CONFLICT)
+                            .body(new BaseResponse<>(new MetaResponse(false, "Username is already taken"), null));
+                }
+                userService.updateUsername(request.getUserId(), request.getUsername());
+                messages.add("Username updated successfully");
+            }
+
+            // Update avatar
+            if (request.getAvatarId() != null && !request.getAvatarId().isBlank()) {
+                userService.updateUserAvatar(request.getUserId(), request.getAvatarId());
+                messages.add("Avatar updated successfully");
+            }
+
+            if (messages.isEmpty()) {
+                return ResponseEntity.badRequest().body(
+                        new BaseResponse<>(new MetaResponse(false, "No valid fields provided for update"), null)
+                );
+            }
+
+            return ResponseEntity.ok(new BaseResponse<>(
+                    new MetaResponse(true, "User updated successfully"),
+                    String.join("; ", messages)
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new BaseResponse<>(new MetaResponse(false, "Update failed: " + e.getMessage()), null));
+        }
+    }
+
 }

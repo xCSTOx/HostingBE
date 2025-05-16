@@ -19,4 +19,5 @@ public class ChallengeUserRequest {
         this.userId = userId;
     }
 
+    public ChallengeUserRequest() {}
 }

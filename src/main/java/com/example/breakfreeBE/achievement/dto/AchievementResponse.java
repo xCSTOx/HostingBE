@@ -9,4 +9,5 @@ public class AchievementResponse {
     private String achievementId;
     private String achievementName;
     private String achievementUrl;
+    private boolean isUnlocked;
 }

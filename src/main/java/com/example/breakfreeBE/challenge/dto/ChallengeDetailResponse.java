@@ -15,7 +15,7 @@ public class ChallengeDetailResponse {
     private int totalDays;
     private String color;
     private String challengeUrl;
-    private LocalDate startDate;
+    private Long startDate;
     private int timesComplete;
     private String status;
     private String addictionName;

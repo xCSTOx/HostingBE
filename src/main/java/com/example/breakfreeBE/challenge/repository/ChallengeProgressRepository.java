@@ -8,4 +8,6 @@ import org.springframework.stereotype.Repository;
 public interface ChallengeProgressRepository extends JpaRepository<ChallengeProgress, String> {
 
     int countByChallengeIdAndUserId(String challengeId, String userId);
+
+    void deleteByChallengeIdAndUserId(String challengeId, String userId);
 }

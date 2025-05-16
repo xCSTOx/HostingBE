@@ -17,18 +17,33 @@ public class AchievementService {
     private final AchievementRepository achievementRepository;
     private final AchievementUserRepository achievementUserRepository;
 
+
     public List<AchievementResponse> getAllAchievements() {
         return achievementRepository.findAll().stream()
-                .map(a -> new AchievementResponse(a.getAchievementId(), a.getAchievementName(), a.getAchievementUrl()))
+                .map(a -> new AchievementResponse(
+                        a.getAchievementId(),
+                        a.getAchievementName(),
+                        a.getAchievementUrl(),
+                        false
+                ))
                 .collect(Collectors.toList());
     }
 
-    public List<AchievementResponse> getAchievementsByUserId(String userId) {
-        List<AchievementUser> userAchievements = achievementUserRepository.findByIdUserId(userId);
+    // Menampilkan semua achievement dan tandai apakah achievement sudah didapat user
+    public List<AchievementResponse> getAllAchievementsByUserId(String userId) {
+        // Ambil semua achievement_id yang sudah dimiliki user
+        List<String> unlockedAchievementIds = achievementUserRepository.findByIdUserId(userId).stream()
+                .map(achievementUser -> achievementUser.getAchievement().getAchievementId())
+                .toList();
 
-        return userAchievements.stream()
-                .map(achievementUser -> achievementUser.getAchievement())
-                .map(a -> new AchievementResponse(a.getAchievementId(), a.getAchievementName(), a.getAchievementUrl()))
+        // Ambil semua achievement dari DB, dan tandai mana yang sudah di-unlock
+        return achievementRepository.findAll().stream()
+                .map(a -> new AchievementResponse(
+                        a.getAchievementId(),
+                        a.getAchievementName(),
+                        a.getAchievementUrl(),
+                        unlockedAchievementIds.contains(a.getAchievementId())
+                ))
                 .collect(Collectors.toList());
     }
 }

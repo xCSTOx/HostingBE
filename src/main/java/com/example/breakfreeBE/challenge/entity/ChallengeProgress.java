@@ -1,32 +1,27 @@
 package com.example.breakfreeBE.challenge.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.Data;
 
-import java.time.LocalDate;
-
-@Setter
-@Getter
 @Entity
 @Table(name = "challenge_progress")
+@Data
 public class ChallengeProgress {
 
     @Id
-    @Column(name = "progress_id")
+    @Column(name = "progress_id", length = 6)
     private String progressId;
 
-    @Column(name = "progress_date", nullable = false)
-    private LocalDate progressDate;
-
-    @Column(name = "challenge_id", nullable = false)
+    @Column(name = "challenge_id", length = 6)
     private String challengeId;
 
-    @Column(name = "user_id", nullable = false)
+    @Column(name = "user_id", length = 6)
     private String userId;
 
-}
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "challenge_id", insertable = false, updatable = false)
+    private Challenge challenge;
 
+    @Column(name = "progress_date", nullable = false)
+    private Long progressDate;
+}

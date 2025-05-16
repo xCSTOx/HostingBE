@@ -95,4 +95,18 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return user.getAvatar();
     }
+
+    @Transactional
+    public String updatePassword(String userId, String newPassword) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            String hashedPassword = passwordEncoder.encode(newPassword);
+            user.setPassword(hashedPassword);
+            userRepository.save(user);
+            return "Password successfully updated";
+        }
+        throw new RuntimeException("User not found");
+    }
+
 }

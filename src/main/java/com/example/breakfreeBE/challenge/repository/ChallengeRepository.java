@@ -9,6 +9,7 @@ import java.util.Optional;
 
 @Repository
 public interface ChallengeRepository extends JpaRepository<Challenge, String> {
+
     Optional<Challenge> findByChallengeIdAndUserId(String challengeId, String userId);
 
     List<Challenge> findByUserIdAndStatus(String userId, String status);

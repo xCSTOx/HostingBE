@@ -13,7 +13,6 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -41,8 +40,8 @@ public class ChallengeService {
         String challengeId = request.getChallengeId();
         String userId = request.getUserId();
 
-        challengeDataRepository.findById(challengeId)
-                .orElseThrow(() -> new ResourceNotFoundException("Challenge not found"));
+        ChallengeData data = challengeDataRepository.findById(challengeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Challenge data not found"));
 
         boolean alreadyJoined = challengeRepository.findByChallengeIdAndUserId(challengeId, userId).isPresent();
         if (alreadyJoined) {
@@ -50,18 +49,22 @@ public class ChallengeService {
         }
 
         Challenge challenge = new Challenge();
-        challenge.setChallengeId(challengeId);
+        challenge.setChallengeId(UUID.randomUUID().toString().substring(0,6));
         challenge.setUserId(userId);
+        challenge.setChallengeDataId(data.getChallengeDataId());
         challenge.setStatus("ongoing");
-        challenge.setStartDate(LocalDate.now());
+        challenge.setStartDate(System.currentTimeMillis());
         challenge.setTimesComplete(0);
         challengeRepository.save(challenge);
     }
 
-
     @Transactional
     public void stopChallenge(ChallengeUserRequest request) {
-        challengeRepository.deleteByChallengeIdAndUserId(request.getChallengeId(), request.getUserId());
+        String challengeId = request.getChallengeId();
+        String userId = request.getUserId();
+
+        challengeProgressRepository.deleteByChallengeIdAndUserId(challengeId, userId);
+        challengeRepository.deleteByChallengeIdAndUserId(challengeId, userId);
     }
 
     public void updateProgress(ChallengeUserRequest request) {
@@ -72,16 +75,16 @@ public class ChallengeService {
                 .orElseThrow(() -> new ResourceNotFoundException("Challenge not found"));
 
         ChallengeProgress progress = new ChallengeProgress();
-        progress.setProgressId(UUID.randomUUID().toString());
+        progress.setProgressId(UUID.randomUUID().toString().substring(0,6)); // Generate 6 char ID
         progress.setChallengeId(challengeId);
         progress.setUserId(userId);
-        progress.setProgressDate(LocalDate.now());
+        progress.setProgressDate(System.currentTimeMillis());
         challengeProgressRepository.save(progress);
 
         int count = challengeProgressRepository.countByChallengeIdAndUserId(challengeId, userId);
         challenge.setTimesComplete(count);
 
-        ChallengeData data = challengeDataRepository.findById(challengeId)
+        ChallengeData data = challengeDataRepository.findById(challenge.getChallengeDataId())
                 .orElseThrow(() -> new ResourceNotFoundException("Challenge data not found"));
 
         if (count >= data.getTotalDays()) {
@@ -102,7 +105,7 @@ public class ChallengeService {
         Challenge challenge = challengeRepository.findByChallengeIdAndUserId(challengeId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Challenge not found"));
 
-        ChallengeData data = challengeDataRepository.findById(challengeId)
+        ChallengeData data = challengeDataRepository.findById(challenge.getChallengeDataId())
                 .orElseThrow(() -> new ResourceNotFoundException("Challenge data not found"));
 
         return new ChallengeDetailResponse(
