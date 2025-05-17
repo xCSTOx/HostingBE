@@ -2,20 +2,18 @@ package com.example.breakfreeBE.challenge.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-
-import java.time.LocalDate;
+import lombok.NoArgsConstructor;
 
 @Data
 @AllArgsConstructor
-public class ChallengeDetailResponse {
+@NoArgsConstructor
+public class ChallengeCompletedResponse {
     private String challengeId;
-    private String userId;
     private String challengeName;
     private String challengeDesc;
-    private int totalDays;
-    private String color;
     private String challengeUrl;
-    private Long startDate;
+    private String color;
+    private int totalDays;
+    private long startDate;
     private int timesComplete;
-    private String status;
 }

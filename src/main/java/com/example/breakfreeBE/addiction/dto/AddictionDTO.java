@@ -11,7 +11,7 @@ public class AddictionDTO {
     private Integer saver;
     private Long streaks;
     private String motivation;
-    private LocalDate startDate;
+    private Long startDate;
     private AddictionService.StreakFunFact streakFunFact; // getter dan setter disediakan
     private String addictionName; // dari relasi AddictionData
 }

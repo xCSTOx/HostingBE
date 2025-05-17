@@ -8,16 +8,18 @@ import lombok.Setter;
 @Getter
 public class ChallengeUserRequest {
 
-    @NotBlank(message = "Challenge ID must not be blank")
-    private String challengeId;
+    private String challengeId;       // opsional, untuk operasi update/detail/stop
+
+    private String challengeDataId;   // opsional, untuk operasi participate (ikuti tantangan)
 
     @NotBlank(message = "User ID must not be blank")
     private String userId;
 
-    public ChallengeUserRequest(String challengeId, String userId) {
+    public ChallengeUserRequest() {}
+
+    public ChallengeUserRequest(String challengeId, String challengeDataId, String userId) {
         this.challengeId = challengeId;
+        this.challengeDataId = challengeDataId;
         this.userId = userId;
     }
-
-    public ChallengeUserRequest() {}
 }

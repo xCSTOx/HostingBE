@@ -1,6 +1,8 @@
 package com.example.breakfreeBE.challenge.controller;
 
+import com.example.breakfreeBE.challenge.dto.ChallengeCompletedResponse;
 import com.example.breakfreeBE.challenge.dto.ChallengeDetailResponse;
+import com.example.breakfreeBE.challenge.dto.ChallengeOngoingResponse;
 import com.example.breakfreeBE.challenge.dto.ChallengeUserRequest;
 import com.example.breakfreeBE.challenge.entity.Challenge;
 import com.example.breakfreeBE.challenge.entity.ChallengeData;
@@ -36,8 +38,8 @@ public class ChallengeController {
     }
 
     @GetMapping("/users/{userId}/ongoing")
-    public ResponseEntity<BaseResponse<List<Challenge>>> getOngoingChallenges(@PathVariable String userId) {
-        List<Challenge> challenges = challengeService.getOngoingChallenges(userId);
+    public ResponseEntity<BaseResponse<List<ChallengeOngoingResponse>>> getOngoingChallenges(@PathVariable String userId) {
+        List<ChallengeOngoingResponse> challenges = challengeService.getOngoingChallenges(userId);
         return ResponseEntity.ok(new BaseResponse<>(new MetaResponse(true, "Ongoing challenges retrieved"), challenges));
     }
 
@@ -60,8 +62,8 @@ public class ChallengeController {
     }
 
     @GetMapping("/users/{userId}/completed")
-    public ResponseEntity<BaseResponse<List<Challenge>>> getCompletedChallenges(@PathVariable String userId) {
-        List<Challenge> challenges = challengeService.getCompletedChallenges(userId);
+    public ResponseEntity<BaseResponse<List<ChallengeCompletedResponse>>> getCompletedChallenges(@PathVariable String userId) {
+        List<ChallengeCompletedResponse> challenges = challengeService.getCompletedChallenges(userId);
         return ResponseEntity.ok(new BaseResponse<>(new MetaResponse(true, "Completed challenges retrieved"), challenges));
     }
 }

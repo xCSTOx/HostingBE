@@ -43,4 +43,3 @@ public class AddictionId implements Serializable {
         return Objects.hash(userId, addictionId);
     }
 }
-

@@ -9,7 +9,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +25,39 @@ public class AddictionController {
     @Autowired
     private AddictionService addictionService;
 
+    @PostMapping("/one")
+    public ResponseEntity<BaseResponse<Map<String, Object>>> getOneAddiction(@RequestBody AddictionDTO requestDto) {
+        if (requestDto.getUserId() == null || requestDto.getUserId().isBlank() ||
+                requestDto.getAddictionId() == null || requestDto.getAddictionId().isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    new BaseResponse<>(new MetaResponse(false, "Addiction not found"), null)
+            );
+        }
+
+        Optional<AddictionDTO> addiction = addictionService.getAddictionByUserIdAndAddictionId(
+                requestDto.getUserId(), requestDto.getAddictionId());
+
+        if (addiction.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new BaseResponse<>(new MetaResponse(false, "Addiction not found"), null)
+            );
+        }
+
+        AddictionDTO foundAddiction = addiction.get();
+
+        // Create a map with only the required fields
+        Map<String, Object> oneResponse = new HashMap<>();
+        oneResponse.put("saver", foundAddiction.getSaver());
+        oneResponse.put("streaks", foundAddiction.getStreaks());
+        oneResponse.put("motivation", foundAddiction.getMotivation());
+        oneResponse.put("startDate", foundAddiction.getStartDate());
+        oneResponse.put("addictionName", foundAddiction.getAddictionName());
+
+        return ResponseEntity.ok(
+                new BaseResponse<>(new MetaResponse(true, "Addiction retrieved successfully"), oneResponse)
+        );
+    }
+
     @PostMapping("/view")
     public ResponseEntity<BaseResponse<List<AddictionDTO>>> getAddictionsByUser(@RequestBody AddictionDTO requestDto) {
         if (requestDto.getUserId() == null || requestDto.getUserId().isBlank()) {
@@ -35,7 +70,12 @@ public class AddictionController {
 
         for (AddictionDTO addiction : addictions) {
             if (addiction.getStartDate() != null) {
-                long streakDays = ChronoUnit.DAYS.between(addiction.getStartDate(), LocalDate.now());
+                // Konversi timestamp ke LocalDate untuk perhitungan
+                LocalDate startDate = Instant.ofEpochMilli(addiction.getStartDate())
+                        .atZone(ZoneId.systemDefault())
+                        .toLocalDate();
+
+                long streakDays = ChronoUnit.DAYS.between(startDate, LocalDate.now());
                 AddictionService.StreakFunFact streakFact = addictionService.getStreakFunFact(streakDays);
                 addiction.setStreakFunFact(streakFact);
             }
@@ -50,7 +90,7 @@ public class AddictionController {
     public ResponseEntity<BaseResponse<Map<String, Object>>> getFunFactSaver(@RequestBody AddictionDTO requestDto) {
         if (requestDto.getUserId() == null || requestDto.getUserId().isBlank()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-                    new BaseResponse<>(new MetaResponse(false, "User ID is required"), null)
+                    new BaseResponse<>(new MetaResponse(false, "Addiction not found"), null)
             );
         }
 
@@ -68,11 +108,9 @@ public class AddictionController {
         responseData.put("color", savingFunFact.bgColor);
 
         return ResponseEntity.ok(
-                new BaseResponse<>(new MetaResponse(true, "Fun fact calculated successfully"), responseData)
+                new BaseResponse<>(new MetaResponse(true, "Successfully create funfact saving"), responseData)
         );
     }
-
-
 
     @PostMapping("/add")
     public ResponseEntity<BaseResponse<Map<String, String>>> createAddiction(@RequestBody AddictionDTO dto) {

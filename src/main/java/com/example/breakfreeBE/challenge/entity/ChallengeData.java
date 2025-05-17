@@ -1,37 +1,42 @@
 package com.example.breakfreeBE.challenge.entity;
 
-import com.example.breakfreeBE.addiction.entity.AddictionData;
+import com.example.breakfreeBE.addiction.entity.Addiction;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 
 @Entity
 @Table(name = "challenge_data")
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class ChallengeData {
 
     @Id
-    @Column(name = "challenge_data_id", length = 6)
+    @Column(name = "challenge_data_id")
     private String challengeDataId;
 
-    @Column(name = "addiction_id", length = 6, insertable = false, updatable = false)
-    private String addictionId;
-
-    @Column(name = "challenge_name", length = 255)
+    @Column(name = "challenge_name")
     private String challengeName;
 
-    @Column(name = "challenge_desc", length = 255)
+    @Column(name = "challenge_desc")
     private String challengeDesc;
 
     @Column(name = "total_days")
-    private int totalDays;
+    private Integer totalDays;
 
-    @Column(name = "color", length = 64)
+    @Column(name = "color")
     private String color;
 
-    @Column(name = "challenge_url", length = 255)
+    @Column(name = "challenge_url")
     private String challengeUrl;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "addiction_id")
-    private AddictionData addictionData;
+    @JoinColumns({
+            @JoinColumn(name = "addiction_id", referencedColumnName = "addiction_id"),
+            @JoinColumn(name = "user_id", referencedColumnName = "user_id")
+    })
+    private Addiction addiction;
+
+
 }

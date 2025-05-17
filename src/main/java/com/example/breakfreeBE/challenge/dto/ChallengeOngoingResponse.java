@@ -7,15 +7,14 @@ import java.time.LocalDate;
 
 @Data
 @AllArgsConstructor
-public class ChallengeDetailResponse {
+public class ChallengeOngoingResponse {
     private String challengeId;
-    private String userId;
     private String challengeName;
     private String challengeDesc;
-    private int totalDays;
     private String color;
     private String challengeUrl;
     private Long startDate;
+    private int totalDays;
     private int timesComplete;
     private String status;
 }
