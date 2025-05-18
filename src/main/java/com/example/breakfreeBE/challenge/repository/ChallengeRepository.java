@@ -15,4 +15,5 @@ public interface ChallengeRepository extends JpaRepository<Challenge, String> {
     Optional<Challenge> findByChallengeData_ChallengeDataIdAndUser_UserId(String challengeDataId, String userId);
 
     void deleteByChallengeData_ChallengeDataIdAndUser_UserId(String challengeDataId, String userId);
+
 }

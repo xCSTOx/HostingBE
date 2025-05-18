@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/challenges")
@@ -56,9 +57,8 @@ public class ChallengeController {
     }
 
     @PostMapping("/progress")
-    public ResponseEntity<BaseResponse<String>> updateProgress(@Valid @RequestBody ChallengeUserRequest request) {
-        challengeService.updateProgress(request);
-        return ResponseEntity.ok(new BaseResponse<>(new MetaResponse(true, "Progress updated"), "Progress saved"));
+    public BaseResponse<Map<String, Boolean>> updateProgress(@RequestBody ChallengeUserRequest request) {
+        return challengeService.updateProgress(request);
     }
 
     @GetMapping("/users/{userId}/completed")
@@ -66,4 +66,6 @@ public class ChallengeController {
         List<ChallengeCompletedResponse> challenges = challengeService.getCompletedChallenges(userId);
         return ResponseEntity.ok(new BaseResponse<>(new MetaResponse(true, "Completed challenges retrieved"), challenges));
     }
+
+
 }

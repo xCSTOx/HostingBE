@@ -1,5 +1,6 @@
 package com.example.breakfreeBE.userRegistration.entity;
 
+import com.example.breakfreeBE.achievement.entity.AchievementUser;
 import com.example.breakfreeBE.addiction.entity.Addiction;
 import com.example.breakfreeBE.avatar.entity.Avatar;
 import com.example.breakfreeBE.challenge.entity.Challenge;
@@ -63,6 +64,9 @@ public class User {
     @JoinColumn(name = "avatar_id")
     private Avatar avatar;
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonManagedReference
+    private List<AchievementUser> achievements;
 
     public User(String userId, String username, String password) {
         this.userId = userId;

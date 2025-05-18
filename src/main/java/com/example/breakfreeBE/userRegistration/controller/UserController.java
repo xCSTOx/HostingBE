@@ -1,9 +1,11 @@
 package com.example.breakfreeBE.userRegistration.controller;
 
+import com.example.breakfreeBE.achievement.dto.AchievementResponse;
 import com.example.breakfreeBE.avatar.dto.AvatarUpdateRequest;
 import com.example.breakfreeBE.avatar.entity.Avatar;
 import com.example.breakfreeBE.common.BaseResponse;
 import com.example.breakfreeBE.common.MetaResponse;
+import com.example.breakfreeBE.userRegistration.dto.UserProfileResponse;
 import com.example.breakfreeBE.userRegistration.dto.UserUpdateRequest;
 import com.example.breakfreeBE.userRegistration.entity.User;
 import com.example.breakfreeBE.userRegistration.service.UserService;
@@ -114,43 +116,6 @@ public class UserController {
                         new BaseResponse<>(new MetaResponse(false, "User not found"), null)));
     }
 
-    @GetMapping("/avatar/view/{userId}")
-    public ResponseEntity<BaseResponse<Avatar>> getUserAvatar(@PathVariable String userId) {
-        try {
-            Avatar avatar = userService.getUserAvatar(userId);
-
-            if (avatar == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                        new BaseResponse<>(new MetaResponse(false, "Avatar not found"), null)
-                );
-            }
-
-            return ResponseEntity.ok(new BaseResponse<>(
-                    new MetaResponse(true, "Avatar retrieved successfully"), avatar
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                    new BaseResponse<>(new MetaResponse(false, "Internal Server Error: " + e.getMessage()), null)
-            );
-        }
-    }
-
-    @PostMapping("/avatar/add")
-    public ResponseEntity<BaseResponse<String>> addAvatarToUser(
-            @RequestBody AvatarUpdateRequest request
-    ) {
-        try {
-            userService.updateUserAvatar(request.userId, request.avatarId);  // reuse method
-            return ResponseEntity.status(HttpStatus.CREATED).body(
-                    new BaseResponse<>(new MetaResponse(true, "Avatar added to user"), "Avatar added")
-            );
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-                    new BaseResponse<>(new MetaResponse(false, e.getMessage()), null)
-            );
-        }
-    }
-
     @PutMapping("/update")
     public ResponseEntity<BaseResponse<String>> updateUser(@Valid @RequestBody UserUpdateRequest request) {
         try {
@@ -161,6 +126,7 @@ public class UserController {
             }
 
             List<String> messages = new ArrayList<>();
+            User user = userOpt.get();
 
             // Update username
             if (request.getUsername() != null && !request.getUsername().isBlank()) {
@@ -172,10 +138,13 @@ public class UserController {
                 messages.add("Username updated successfully");
             }
 
-            // Update avatar
+            // Update avatar only if different
             if (request.getAvatarId() != null && !request.getAvatarId().isBlank()) {
-                userService.updateUserAvatar(request.getUserId(), request.getAvatarId());
-                messages.add("Avatar updated successfully");
+                String currentAvatarId = (user.getAvatar() != null) ? user.getAvatar().getAvatarId() : null;
+                if (!request.getAvatarId().equals(currentAvatarId)) {
+                    userService.updateUserAvatar(request.getUserId(), request.getAvatarId());
+                    messages.add("Avatar updated successfully");
+                }
             }
 
             if (messages.isEmpty()) {
@@ -194,5 +163,41 @@ public class UserController {
                     .body(new BaseResponse<>(new MetaResponse(false, "Update failed: " + e.getMessage()), null));
         }
     }
+
+    @GetMapping("/{userId}/profile")
+    public ResponseEntity<BaseResponse<UserProfileResponse>> getUserProfile(@PathVariable String userId) {
+        try {
+            UserProfileResponse profile = userService.getUserProfile(userId);
+            return ResponseEntity.ok(new BaseResponse<>(
+                    new MetaResponse(true, "User profile retrieved successfully"), profile
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new BaseResponse<>(new MetaResponse(false, e.getMessage()), null)
+            );
+        }
+    }
+
+    @GetMapping("/{userId}/achievements/unlocked")
+    public ResponseEntity<BaseResponse<List<AchievementResponse>>> getUnlockedAchievements(@PathVariable String userId) {
+        try {
+            List<AchievementResponse> unlockedAchievements = userService.getUnlockedAchievements(userId);
+            return ResponseEntity.ok(new BaseResponse<>(
+                    new MetaResponse(true, "Unlocked achievements fetched successfully"),
+                    unlockedAchievements
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new BaseResponse<>(new MetaResponse(false, e.getMessage()), null)
+            );
+        }
+    }
+
+
+
+
+
+
+
 
 }

@@ -23,6 +23,10 @@ public class BaseResponse<T> implements Serializable {
         return data;
     }
 
+    public static <T> BaseResponse<T> success(String message, T data) {
+        return new BaseResponse<>(new MetaResponse(true, message), data);
+    }
+
     public void setData(T data) {
         this.data = data;
     }

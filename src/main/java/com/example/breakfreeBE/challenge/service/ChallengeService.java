@@ -10,6 +10,7 @@ import com.example.breakfreeBE.challenge.entity.*;
 import com.example.breakfreeBE.challenge.repository.ChallengeDataRepository;
 import com.example.breakfreeBE.challenge.repository.ChallengeProgressRepository;
 import com.example.breakfreeBE.challenge.repository.ChallengeRepository;
+import com.example.breakfreeBE.common.BaseResponse;
 import com.example.breakfreeBE.exception.ResourceNotFoundException;
 import com.example.breakfreeBE.userRegistration.entity.User;
 import com.example.breakfreeBE.userRegistration.repository.UserRepository;
@@ -17,8 +18,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,10 +40,25 @@ public class ChallengeService {
         return challengeDataRepository.findAll();
     }
 
+    private boolean isToday(long epochMillis) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(epochMillis);
+        int year = calendar.get(Calendar.YEAR);
+        int dayOfYear = calendar.get(Calendar.DAY_OF_YEAR);
+
+        Calendar now = Calendar.getInstance();
+        return year == now.get(Calendar.YEAR) && dayOfYear == now.get(Calendar.DAY_OF_YEAR);
+    }
+
     public List<ChallengeOngoingResponse> getOngoingChallenges(String userId) {
         List<Challenge> challenges = challengeRepository.findByUser_UserIdAndStatus(userId, "ongoing");
 
         return challenges.stream().map(c -> {
+            List<Long> weeklyLogs = getWeeklyLogs(userId, c.getChallengeId());
+
+            boolean todayLogged = c.getProgressList() != null &&
+                    c.getProgressList().stream().anyMatch(p -> isToday(p.getProgressDate()));
+
             return new ChallengeOngoingResponse(
                     c.getChallengeId(),
                     c.getChallengeData().getChallengeName(),
@@ -53,11 +68,14 @@ public class ChallengeService {
                     c.getStartDate(),
                     c.getChallengeData().getTotalDays(),
                     c.getTimesComplete(),
-                    c.getStatus()
+                    c.getStatus(),
+                    weeklyLogs,
+                    todayLogged
             );
         }).toList();
-    }
 
+
+    }
 
     public void participateChallenge(ChallengeUserRequest request) {
         String challengeDataId = request.getChallengeDataId();  // gunakan ini untuk ambil ChallengeData
@@ -96,13 +114,21 @@ public class ChallengeService {
         challengeRepository.delete(challenge); // ini menghapus dengan benar berdasarkan ID
     }
 
-    public void updateProgress(ChallengeUserRequest request) {
-        String challengeDataId = request.getChallengeId();
+    public BaseResponse<Map<String, Boolean>> updateProgress(ChallengeUserRequest request) {
+        String challengeId = request.getChallengeId();
         String userId = request.getUserId();
 
-        Challenge challenge = challengeRepository.findByChallengeIdAndUser_UserId(request.getChallengeId(), userId)
+        Challenge challenge = challengeRepository.findByChallengeIdAndUser_UserId(challengeId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Challenge not found"));
 
+        // Cek apakah sudah log hari ini
+        boolean alreadyLoggedToday = challenge.getProgressList().stream()
+                .anyMatch(p -> isToday(p.getProgressDate()));
+        if (alreadyLoggedToday) {
+            throw new IllegalStateException("Already logged today");
+        }
+
+        // Simpan progress baru
         ChallengeProgress progress = new ChallengeProgress();
         progress.setProgressId(UUID.randomUUID().toString().substring(0, 6));
         progress.setChallenge(challenge);
@@ -114,12 +140,20 @@ public class ChallengeService {
 
         ChallengeData data = challenge.getChallengeData();
 
+        boolean completed = false;
         if (count >= data.getTotalDays()) {
             challenge.setStatus("completed");
+            completed = true;
         }
 
         challengeRepository.save(challenge);
+
+        Map<String, Boolean> result = new HashMap<>();
+        result.put("completed", completed);
+
+        return BaseResponse.success("Progress updated" + (completed ? " and challenge completed" : ""), result);
     }
+
 
     public List<ChallengeCompletedResponse> getCompletedChallenges(String userId) {
         List<Challenge> challenges = challengeRepository.findByUser_UserIdAndStatus(userId, "completed");
@@ -161,5 +195,34 @@ public class ChallengeService {
                 challenge.getStatus()
         );
     }
+
+    public List<Long> getWeeklyLogs(String userId, String challengeId) {
+        long now = System.currentTimeMillis();
+        long millisPerDay = 24 * 60 * 60 * 1000;
+
+        // Hitung waktu mulai dari 7 hari terakhir (termasuk hari ini)
+        long startOfToday = now - (now % millisPerDay); // reset ke pukul 00:00 hari ini
+        long startWindow = startOfToday - (millisPerDay * 6); // 6 hari ke belakang + hari ini = 7 hari
+
+        // Ambil progress dari 7 hari terakhir
+        List<ChallengeProgress> logs = challengeProgressRepository.findLogsInRange(challengeId, startWindow, now);
+
+        // Map: index 0–6 → progress timestamp atau null
+        Map<Integer, Long> dailyLogMap = new HashMap<>();
+        for (ChallengeProgress log : logs) {
+            long progressDate = log.getProgressDate();
+            int dayIndex = (int) ((progressDate - startWindow) / millisPerDay);
+            dailyLogMap.putIfAbsent(dayIndex, progressDate); // 1 log per hari
+        }
+
+        // Hasil akhir: urut dari 6 hari lalu → hari ini
+        List<Long> result = new ArrayList<>();
+        for (int i = 0; i < 7; i++) {
+            result.add(dailyLogMap.getOrDefault(i, null));
+        }
+
+        return result;
+    }
+
 
 }

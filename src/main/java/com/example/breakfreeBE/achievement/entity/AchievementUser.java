@@ -27,5 +27,5 @@ public class AchievementUser {
     private User user;
 
     @Column(name = "achievement_date")
-    private Date achievementDate;
+    private Long achievementDate;
 }

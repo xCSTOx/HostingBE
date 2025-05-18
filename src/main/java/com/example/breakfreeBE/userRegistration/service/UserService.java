@@ -1,7 +1,14 @@
 package com.example.breakfreeBE.userRegistration.service;
 
+import com.example.breakfreeBE.achievement.dto.AchievementResponse;
+import com.example.breakfreeBE.achievement.entity.Achievement;
+import com.example.breakfreeBE.achievement.entity.AchievementUser;
+import com.example.breakfreeBE.achievement.repository.AchievementUserRepository;
 import com.example.breakfreeBE.avatar.entity.Avatar;
 import com.example.breakfreeBE.avatar.repository.AvatarRepository;
+import com.example.breakfreeBE.challenge.dto.ChallengeCompletedResponse;
+import com.example.breakfreeBE.challenge.entity.ChallengeProgress;
+import com.example.breakfreeBE.userRegistration.dto.UserProfileResponse;
 import com.example.breakfreeBE.userRegistration.entity.User;
 import com.example.breakfreeBE.userRegistration.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -11,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -18,9 +26,13 @@ public class UserService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final AvatarRepository avatarRepository;
 
-    public UserService(@Qualifier("userRepository") UserRepository userRepository, AvatarRepository avatarRepository) {
+    private final AchievementUserRepository achievementUserRepository;
+
+
+    public UserService(@Qualifier("userRepository") UserRepository userRepository, AvatarRepository avatarRepository, AchievementUserRepository achievementUserRepository) {
         this.userRepository = userRepository;
         this.avatarRepository = avatarRepository;
+        this.achievementUserRepository = achievementUserRepository;
         this.passwordEncoder = new BCryptPasswordEncoder();
     }
 
@@ -96,17 +108,97 @@ public class UserService {
         return user.getAvatar();
     }
 
-    @Transactional
-    public String updatePassword(String userId, String newPassword) {
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            String hashedPassword = passwordEncoder.encode(newPassword);
-            user.setPassword(hashedPassword);
-            userRepository.save(user);
-            return "Password successfully updated";
-        }
-        throw new RuntimeException("User not found");
+    public UserProfileResponse getUserProfile(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String avatarUrl = user.getAvatar() != null ? user.getAvatar().getAvatarUrl() : null;
+
+        // Longest streak calculation
+        int longestStreak = user.getChallenges().stream()
+                .filter(c -> c.getProgressList() != null)
+                .mapToInt(c -> calculateLongestStreak(c.getProgressList()))
+                .max().orElse(0);
+
+        // 3 latest completed challenges
+        List<ChallengeCompletedResponse> completedChallenges = user.getChallenges().stream()
+                .filter(c -> "completed".equalsIgnoreCase(c.getStatus()))
+                .sorted((a, b) -> Long.compare(b.getStartDate(), a.getStartDate()))
+                .limit(3)
+                .map(c -> new ChallengeCompletedResponse(
+                        c.getChallengeId(),
+                        c.getChallengeData().getChallengeName(),
+                        c.getChallengeData().getChallengeDesc(),
+                        c.getChallengeData().getChallengeUrl(),
+                        c.getChallengeData().getColor(),
+                        c.getChallengeData().getTotalDays(),
+                        c.getStartDate(),
+                        c.getTimesComplete()
+                )).toList();
+
+        // 3 latest achievements
+        List<AchievementResponse> latestAchievements = user.getAchievements().stream()
+                .sorted((a, b) -> b.getAchievementDate().compareTo(a.getAchievementDate()))
+                .limit(3)
+                .map(a -> new AchievementResponse(
+                        a.getAchievement().getAchievementId(),
+                        a.getAchievement().getAchievementName(),
+                        a.getAchievement().getAchievementUrl(),
+                        true
+                )).toList();
+
+        return new UserProfileResponse(
+                user.getUserId(),
+                user.getUsername(),
+                avatarUrl,
+                latestAchievements,
+                completedChallenges
+        );
     }
+
+    private int calculateLongestStreak(List<ChallengeProgress> progresses) {
+        if (progresses == null || progresses.isEmpty()) return 0;
+
+        List<Long> sortedDates = progresses.stream()
+                .map(ChallengeProgress::getProgressDate)
+                .distinct()
+                .sorted()
+                .toList();
+
+        int longest = 1;
+        int current = 1;
+
+        for (int i = 1; i < sortedDates.size(); i++) {
+            long diffDays = (sortedDates.get(i) - sortedDates.get(i - 1)) / 86400000;
+            if (diffDays == 1) {
+                current++;
+            } else {
+                longest = Math.max(longest, current);
+                current = 1;
+            }
+        }
+        return Math.max(longest, current);
+    }
+
+    public List<AchievementResponse> getUnlockedAchievements(String userId) {
+        List<AchievementUser> unlocked = achievementUserRepository.findByIdUserId(userId);
+
+        if (unlocked.isEmpty()) {
+            throw new RuntimeException("No unlocked achievements found for user " + userId);
+        }
+
+        return unlocked.stream()
+                .map(au -> {
+                    Achievement a = au.getAchievement();
+                    return new AchievementResponse(
+                            a.getAchievementId(),
+                            a.getAchievementName(),
+                            a.getAchievementUrl(),
+                            true
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+
 
 }
