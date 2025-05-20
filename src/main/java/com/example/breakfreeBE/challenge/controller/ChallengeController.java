@@ -1,9 +1,7 @@
 package com.example.breakfreeBE.challenge.controller;
 
-import com.example.breakfreeBE.challenge.dto.ChallengeCompletedResponse;
-import com.example.breakfreeBE.challenge.dto.ChallengeDetailResponse;
-import com.example.breakfreeBE.challenge.dto.ChallengeOngoingResponse;
-import com.example.breakfreeBE.challenge.dto.ChallengeUserRequest;
+import com.example.breakfreeBE.achievement.dto.AchievementResponse;
+import com.example.breakfreeBE.challenge.dto.*;
 import com.example.breakfreeBE.challenge.entity.Challenge;
 import com.example.breakfreeBE.challenge.entity.ChallengeData;
 import com.example.breakfreeBE.challenge.service.ChallengeService;
@@ -45,9 +43,9 @@ public class ChallengeController {
     }
 
     @PostMapping("/participate")
-    public ResponseEntity<BaseResponse<String>> participateChallenge(@Valid @RequestBody ChallengeUserRequest request) {
-        challengeService.participateChallenge(request);
-        return ResponseEntity.ok(new BaseResponse<>(new MetaResponse(true, "Challenge participation successful"), "Participated successfully"));
+    public ResponseEntity<BaseResponse<?>> participateChallenge(@Valid @RequestBody ChallengeUserRequest request) {
+        BaseResponse<?> response = challengeService.participateChallenge(request);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/stop")
@@ -57,7 +55,7 @@ public class ChallengeController {
     }
 
     @PostMapping("/progress")
-    public BaseResponse<Map<String, Boolean>> updateProgress(@RequestBody ChallengeUserRequest request) {
+    public BaseResponse<Map<String, Object>> updateProgress(@RequestBody ChallengeUserRequest request) {
         return challengeService.updateProgress(request);
     }
 

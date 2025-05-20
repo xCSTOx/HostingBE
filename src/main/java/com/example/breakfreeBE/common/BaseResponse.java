@@ -27,6 +27,10 @@ public class BaseResponse<T> implements Serializable {
         return new BaseResponse<>(new MetaResponse(true, message), data);
     }
 
+    public static <T> BaseResponse<T> error(String message) {
+        return new BaseResponse<>(new MetaResponse(false, message), null);
+    }
+
     public void setData(T data) {
         this.data = data;
     }

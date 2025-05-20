@@ -4,11 +4,10 @@ import com.example.breakfreeBE.userRegistration.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.Date;
-
 @Entity
 @Table(name = "achievement_user")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class AchievementUser {
@@ -28,4 +27,8 @@ public class AchievementUser {
 
     @Column(name = "achievement_date")
     private Long achievementDate;
+
+    @Column(name = "achieved_at", nullable = false)
+    private Long achievedAt;
+
 }

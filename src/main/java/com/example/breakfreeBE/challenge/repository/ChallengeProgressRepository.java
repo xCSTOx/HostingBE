@@ -1,5 +1,6 @@
 package com.example.breakfreeBE.challenge.repository;
 
+import com.example.breakfreeBE.challenge.entity.Challenge;
 import com.example.breakfreeBE.challenge.entity.ChallengeProgress;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -15,4 +16,7 @@ public interface ChallengeProgressRepository extends JpaRepository<ChallengeProg
             @Param("challengeId") String challengeId,
             @Param("start") Long start,
             @Param("end") Long end);
+
+    List<ChallengeProgress> findByChallenge(Challenge challenge);
+
 }

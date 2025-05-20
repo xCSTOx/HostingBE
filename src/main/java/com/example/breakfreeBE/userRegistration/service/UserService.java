@@ -3,6 +3,8 @@ package com.example.breakfreeBE.userRegistration.service;
 import com.example.breakfreeBE.achievement.dto.AchievementResponse;
 import com.example.breakfreeBE.achievement.entity.Achievement;
 import com.example.breakfreeBE.achievement.entity.AchievementUser;
+import com.example.breakfreeBE.achievement.entity.AchievementUserId;
+import com.example.breakfreeBE.achievement.repository.AchievementRepository;
 import com.example.breakfreeBE.achievement.repository.AchievementUserRepository;
 import com.example.breakfreeBE.avatar.entity.Avatar;
 import com.example.breakfreeBE.avatar.repository.AvatarRepository;
@@ -11,12 +13,17 @@ import com.example.breakfreeBE.challenge.entity.ChallengeProgress;
 import com.example.breakfreeBE.userRegistration.dto.UserProfileResponse;
 import com.example.breakfreeBE.userRegistration.entity.User;
 import com.example.breakfreeBE.userRegistration.repository.UserRepository;
+import com.example.breakfreeBE.common.BaseResponse;
+import com.example.breakfreeBE.userRegistration.dto.UserUpdateRequest;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -25,14 +32,17 @@ public class UserService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final AvatarRepository avatarRepository;
-
     private final AchievementUserRepository achievementUserRepository;
+    private final AchievementRepository achievementRepository;
 
-
-    public UserService(@Qualifier("userRepository") UserRepository userRepository, AvatarRepository avatarRepository, AchievementUserRepository achievementUserRepository) {
+    public UserService(@Qualifier("userRepository") UserRepository userRepository,
+                       AvatarRepository avatarRepository,
+                       AchievementUserRepository achievementUserRepository,
+                       AchievementRepository achievementRepository) {
         this.userRepository = userRepository;
         this.avatarRepository = avatarRepository;
         this.achievementUserRepository = achievementUserRepository;
+        this.achievementRepository = achievementRepository;
         this.passwordEncoder = new BCryptPasswordEncoder();
     }
 
@@ -62,17 +72,122 @@ public class UserService {
     }
 
     @Transactional
-    public void updateUserAvatar(String userId, String avatarId) {
+    public List<AchievementResponse> updateUserAvatar(String userId, String avatarId) {
         Optional<User> userOpt = userRepository.findById(userId);
         Optional<Avatar> avatarOpt = avatarRepository.findById(avatarId);
 
         if (userOpt.isPresent() && avatarOpt.isPresent()) {
             User user = userOpt.get();
             user.setAvatar(avatarOpt.get());
+
+            List<AchievementResponse> unlocked = unlockAchievementIfFirstProfileUpdate(user);
             userRepository.save(user);
-        } else {
-            throw new RuntimeException("User or Avatar not found");
+            return unlocked;
         }
+        return List.of();
+    }
+
+    @Transactional
+    public List<AchievementResponse> updateUsername(String userId, String newUsername) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            user.setUsername(newUsername);
+
+            List<AchievementResponse> unlocked = unlockAchievementIfFirstProfileUpdate(user);
+            userRepository.save(user);
+            return unlocked;
+        }
+        return List.of();
+    }
+
+    @Transactional
+    public BaseResponse<Object> updateProfile (UserUpdateRequest request) {
+        Optional<User> optionalUser = userRepository.findById(request.getUserId());
+        Optional<Avatar> optionalAvatar = avatarRepository.findById(request.getAvatarId());
+
+        if (optionalUser.isEmpty() || optionalAvatar.isEmpty()) {
+            return BaseResponse.error("Update failed: User or Avatar not found");
+        }
+
+        User user = optionalUser.get();
+        Avatar avatar = optionalAvatar.get();
+
+        // Cek apakah username sudah dipakai oleh user lain
+        if (!user.getUsername().equals(request.getUsername())
+                && userRepository.existsByUsername(request.getUsername())) {
+            return BaseResponse.error("Username is already taken");
+        }
+
+        StringBuilder updateMessages = new StringBuilder();
+
+        // Update username jika berbeda
+        if (!user.getUsername().equals(request.getUsername())) {
+            user.setUsername(request.getUsername());
+            updateMessages.append("Username updated successfully");
+        }
+
+        // Update avatar jika berbeda
+        if (!user.getAvatar().getAvatarId().equals(avatar.getAvatarId())) {
+            user.setAvatar(avatar);
+            if (updateMessages.length() > 0) updateMessages.append("; ");
+            updateMessages.append("Avatar updated successfully");
+        }
+
+        userRepository.save(user);
+
+        // Cek apakah user baru pertama kali update profil dan dapat achievement AC0014
+        List<AchievementResponse> unlocked = unlockAchievementIfFirstProfileUpdate(user);
+
+        if (!unlocked.isEmpty()) {
+            Map<String, Object> responseData = new LinkedHashMap<>();
+            responseData.put("Achievement", unlocked.stream().map(a -> {
+                LinkedHashMap<String, Object> map = new LinkedHashMap<>();
+                map.put("achievementId", a.getAchievementId());
+                map.put("achievementName", a.getAchievementName());
+                map.put("achievementUrl", a.getAchievementUrl());
+                return map;
+            }).toList());
+            responseData.put("userId", user.getUserId());
+
+            String message = "User updated successfully; Achievement Earned!";
+
+            return BaseResponse.success(message, responseData);
+        }
+
+        return BaseResponse.success("User updated successfully", updateMessages.toString());
+    }
+
+    private List<AchievementResponse> unlockAchievementIfFirstProfileUpdate(User user) {
+        String userId = user.getUserId();
+        String achievementId = "AC0014";
+
+        boolean alreadyUnlocked = achievementUserRepository.existsByIdUserIdAndIdAchievementId(userId, achievementId);
+        if (alreadyUnlocked) return List.of();
+
+        Achievement achievement = achievementRepository.findById(achievementId)
+                .orElseThrow(() -> new RuntimeException("Achievement not found: " + achievementId));
+
+        AchievementUser achievementUser = new AchievementUser();
+        AchievementUserId id = new AchievementUserId(achievementId, userId);
+        achievementUser.setId(id);
+        achievementUser.setAchievement(achievement);
+        achievementUser.setUser(user);
+
+        long now = System.currentTimeMillis();
+        achievementUser.setAchievementDate(now);
+        achievementUser.setAchievedAt(now);
+
+        achievementUserRepository.save(achievementUser);
+
+        AchievementResponse response = new AchievementResponse(
+                achievement.getAchievementId(),
+                achievement.getAchievementName(),
+                achievement.getAchievementUrl(),
+                true
+        );
+
+        return List.of(response);
     }
 
     public Optional<User> findByUsername(String username) {
@@ -89,17 +204,6 @@ public class UserService {
 
     public Optional<User> getUserById(String userId) {
         return userRepository.findById(userId);
-    }
-
-    public String updateUsername(String userId, String newUsername) {
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            user.setUsername(newUsername);
-            userRepository.save(user);
-            return "Username successfully updated";
-        }
-        return "User not found";
     }
 
     public Avatar getUserAvatar(String userId) {
@@ -199,6 +303,4 @@ public class UserService {
                 })
                 .collect(Collectors.toList());
     }
-
-
 }

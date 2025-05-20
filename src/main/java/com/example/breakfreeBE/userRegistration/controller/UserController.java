@@ -117,51 +117,9 @@ public class UserController {
     }
 
     @PutMapping("/update")
-    public ResponseEntity<BaseResponse<String>> updateUser(@Valid @RequestBody UserUpdateRequest request) {
-        try {
-            Optional<User> userOpt = userService.getUserById(request.getUserId());
-            if (userOpt.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(new BaseResponse<>(new MetaResponse(false, "User not found"), null));
-            }
-
-            List<String> messages = new ArrayList<>();
-            User user = userOpt.get();
-
-            // Update username
-            if (request.getUsername() != null && !request.getUsername().isBlank()) {
-                if (userService.existsByUsername(request.getUsername())) {
-                    return ResponseEntity.status(HttpStatus.CONFLICT)
-                            .body(new BaseResponse<>(new MetaResponse(false, "Username is already taken"), null));
-                }
-                userService.updateUsername(request.getUserId(), request.getUsername());
-                messages.add("Username updated successfully");
-            }
-
-            // Update avatar only if different
-            if (request.getAvatarId() != null && !request.getAvatarId().isBlank()) {
-                String currentAvatarId = (user.getAvatar() != null) ? user.getAvatar().getAvatarId() : null;
-                if (!request.getAvatarId().equals(currentAvatarId)) {
-                    userService.updateUserAvatar(request.getUserId(), request.getAvatarId());
-                    messages.add("Avatar updated successfully");
-                }
-            }
-
-            if (messages.isEmpty()) {
-                return ResponseEntity.badRequest().body(
-                        new BaseResponse<>(new MetaResponse(false, "No valid fields provided for update"), null)
-                );
-            }
-
-            return ResponseEntity.ok(new BaseResponse<>(
-                    new MetaResponse(true, "User updated successfully"),
-                    String.join("; ", messages)
-            ));
-
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new BaseResponse<>(new MetaResponse(false, "Update failed: " + e.getMessage()), null));
-        }
+    public ResponseEntity<BaseResponse<?>> updateProfile(@RequestBody @Valid UserUpdateRequest request) {
+        BaseResponse<?> response = userService.updateProfile(request);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{userId}/profile")

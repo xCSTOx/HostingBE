@@ -1,9 +1,9 @@
 package com.example.breakfreeBE.challenge.service;
 
-import com.example.breakfreeBE.challenge.dto.ChallengeCompletedResponse;
-import com.example.breakfreeBE.challenge.dto.ChallengeDetailResponse;
-import com.example.breakfreeBE.challenge.dto.ChallengeOngoingResponse;
-import com.example.breakfreeBE.challenge.dto.ChallengeUserRequest;
+import com.example.breakfreeBE.achievement.dto.AchievementResponse;
+import com.example.breakfreeBE.achievement.dto.AchievementSimpleResponse;
+import com.example.breakfreeBE.achievement.service.AchievementService;
+import com.example.breakfreeBE.challenge.dto.*;
 import com.example.breakfreeBE.challenge.entity.Challenge;
 import com.example.breakfreeBE.challenge.entity.ChallengeData;
 import com.example.breakfreeBE.challenge.entity.*;
@@ -11,6 +11,7 @@ import com.example.breakfreeBE.challenge.repository.ChallengeDataRepository;
 import com.example.breakfreeBE.challenge.repository.ChallengeProgressRepository;
 import com.example.breakfreeBE.challenge.repository.ChallengeRepository;
 import com.example.breakfreeBE.common.BaseResponse;
+import com.example.breakfreeBE.common.MetaResponse;
 import com.example.breakfreeBE.exception.ResourceNotFoundException;
 import com.example.breakfreeBE.userRegistration.entity.User;
 import com.example.breakfreeBE.userRegistration.repository.UserRepository;
@@ -35,6 +36,9 @@ public class ChallengeService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private AchievementService achievementService;
 
     public List<ChallengeData> getAllDailyChallenges() {
         return challengeDataRepository.findAll();
@@ -73,12 +77,10 @@ public class ChallengeService {
                     todayLogged
             );
         }).toList();
-
-
     }
 
-    public void participateChallenge(ChallengeUserRequest request) {
-        String challengeDataId = request.getChallengeDataId();  // gunakan ini untuk ambil ChallengeData
+    public BaseResponse<?> participateChallenge(ChallengeUserRequest request) {
+        String challengeDataId = request.getChallengeDataId();
         String userId = request.getUserId();
 
         ChallengeData challengeData = challengeDataRepository.findById(challengeDataId)
@@ -100,21 +102,31 @@ public class ChallengeService {
         challenge.setStartDate(System.currentTimeMillis());
         challenge.setTimesComplete(0);
         challengeRepository.save(challenge);
+
+        // Cek dan unlock achievement yang terkait
+        List<AchievementResponse> unlockedAchievements = achievementService.checkAndUnlockChallengeAchievements(user);
+
+        MetaResponse meta;
+        Object dataResponse;
+
+        if (!unlockedAchievements.isEmpty()) {
+            AchievementResponse first = unlockedAchievements.get(0);
+            AchievementSimpleResponse achievementSimple = new AchievementSimpleResponse(
+                    first.getAchievementId(),
+                    first.getAchievementName(),
+                    first.getAchievementUrl()
+            );
+            dataResponse = new ParticipateChallengeDataResponse(achievementSimple, challenge.getChallengeId());
+            meta = new MetaResponse(true, "Challenge joined successfully and achievement earned");
+        } else {
+            dataResponse = "Participated successfully";
+            meta = new MetaResponse(true, "Challenge participation successful");
+        }
+
+        return new BaseResponse<>(meta, dataResponse);
     }
 
-
-    @Transactional
-    public void stopChallenge(ChallengeUserRequest request) {
-        String challengeId = request.getChallengeId();
-        String userId = request.getUserId();
-
-        Challenge challenge = challengeRepository.findByChallengeIdAndUser_UserId(challengeId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Challenge not found"));
-
-        challengeRepository.delete(challenge); // ini menghapus dengan benar berdasarkan ID
-    }
-
-    public BaseResponse<Map<String, Boolean>> updateProgress(ChallengeUserRequest request) {
+    public BaseResponse<Map<String, Object>> updateProgress(ChallengeUserRequest request) {
         String challengeId = request.getChallengeId();
         String userId = request.getUserId();
 
@@ -139,7 +151,6 @@ public class ChallengeService {
         challenge.setTimesComplete(count);
 
         ChallengeData data = challenge.getChallengeData();
-
         boolean completed = false;
         if (count >= data.getTotalDays()) {
             challenge.setStatus("completed");
@@ -148,12 +159,38 @@ public class ChallengeService {
 
         challengeRepository.save(challenge);
 
-        Map<String, Boolean> result = new HashMap<>();
-        result.put("completed", completed);
+        // Cek dan ubah achievement ke format simple
+        List<AchievementResponse> newAchievements = achievementService.checkAndUnlockChallengeAchievements(challenge.getUser());
+        List<AchievementSimpleResponse> simpleAchievements = achievementService.toSimpleResponseList(newAchievements);
 
-        return BaseResponse.success("Progress updated" + (completed ? " and challenge completed" : ""), result);
+        // Siapkan response
+        Map<String, Object> result = new LinkedHashMap<>();
+
+        if (!simpleAchievements.isEmpty()) {
+            result.put("Achievements", simpleAchievements);
+        }
+
+        result.put("challengeId", challenge.getChallengeId());
+
+        // Buat message dinamis
+        StringBuilder messageBuilder = new StringBuilder("Progress updated");
+        if (completed) messageBuilder.append(" and challenge completed");
+        if (!simpleAchievements.isEmpty()) messageBuilder.append(" – Achievement Earned!");
+
+        return BaseResponse.success(messageBuilder.toString(), result);
     }
 
+
+    @Transactional
+    public void stopChallenge(ChallengeUserRequest request) {
+        String challengeId = request.getChallengeId();
+        String userId = request.getUserId();
+
+        Challenge challenge = challengeRepository.findByChallengeIdAndUser_UserId(challengeId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Challenge not found"));
+
+        challengeRepository.delete(challenge); // ini menghapus dengan benar berdasarkan ID
+    }
 
     public List<ChallengeCompletedResponse> getCompletedChallenges(String userId) {
         List<Challenge> challenges = challengeRepository.findByUser_UserIdAndStatus(userId, "completed");
@@ -223,6 +260,4 @@ public class ChallengeService {
 
         return result;
     }
-
-
 }
