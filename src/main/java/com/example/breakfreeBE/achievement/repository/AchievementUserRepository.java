@@ -19,5 +19,5 @@ public interface AchievementUserRepository extends JpaRepository<AchievementUser
 
     boolean existsByIdUserIdAndIdAchievementId(String userId, String achievementId);
 
-
+    List<AchievementUser> findById_AchievementId(String achievementId);
 }

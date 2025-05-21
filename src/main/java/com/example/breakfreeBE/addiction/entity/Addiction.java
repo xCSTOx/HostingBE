@@ -43,7 +43,4 @@ public class Addiction {
     @Column(name = "start_date", nullable = false)
     private Long startDate;
 
-    @Column(name = "addiction_name")
-    private String addictionName;
-
 }

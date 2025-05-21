@@ -8,10 +8,8 @@ import com.example.breakfreeBE.achievement.entity.AchievementUserId;
 import com.example.breakfreeBE.achievement.repository.AchievementRepository;
 import com.example.breakfreeBE.achievement.repository.AchievementUserRepository;
 import com.example.breakfreeBE.challenge.entity.Challenge;
-import com.example.breakfreeBE.challenge.entity.ChallengeProgress;
 import com.example.breakfreeBE.challenge.repository.ChallengeProgressRepository;
 import com.example.breakfreeBE.challenge.repository.ChallengeRepository;
-import com.example.breakfreeBE.common.BaseResponse;
 import com.example.breakfreeBE.userRegistration.entity.User;
 import com.example.breakfreeBE.userRegistration.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +31,7 @@ public class AchievementService {
     public List<AchievementResponse> getAllAchievements() {
         List<Achievement> achievements = achievementRepository.findAll();
         return achievements.stream()
-                .map(ach -> toAchievementResponse(ach, false)) // unlocked: false karena ini global
+                .map(ach -> toAchievementResponse(ach, false))
                 .collect(Collectors.toList());
     }
 
@@ -41,12 +39,21 @@ public class AchievementService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        return getAllAchievementsForUser(user); // method ini sudah ada di service kamu
+        return getAllAchievementsForUser(user);
+    }
+
+    public List<AchievementResponse> getAchievementsByUserId(String userId) {
+        List<AchievementUser> userAchievements = achievementUserRepository.findByIdUserId(userId);
+        return userAchievements.stream()
+                .map(achievementUser -> achievementUser.getAchievement())
+                .map(a -> new AchievementResponse(a.getAchievementDesc(), a.getAchievementId(), a.getAchievementName(), a.getAchievementUrl(), true))
+                .collect(Collectors.toList());
     }
 
     // 1. Convert Achievement entity jadi AchievementResponse dengan status unlock
     public AchievementResponse toAchievementResponse(Achievement achievement, boolean unlocked) {
         return new AchievementResponse(
+                achievement.getAchievementDesc(),
                 achievement.getAchievementId(),
                 achievement.getAchievementName(),
                 achievement.getAchievementUrl(),
@@ -57,6 +64,7 @@ public class AchievementService {
     public List<AchievementSimpleResponse> toSimpleResponseList(List<AchievementResponse> unlockedList) {
         return unlockedList.stream()
                 .map(unlocked -> new AchievementSimpleResponse(
+                        unlocked.getAchievementDesc(),
                         unlocked.getAchievementId(),
                         unlocked.getAchievementName(),
                         unlocked.getAchievementUrl()
@@ -108,11 +116,13 @@ public class AchievementService {
         }
 
         // AC0011 - Iron Will (selesai challenge pertama kali)
-        boolean completedOnce = challengeRepository.existsByUserAndTimesComplete(user, 1);
-        if (completedOnce && !ownedAchievementIds.contains("AC0011")) {
+        long completedChallengeCount = challengeRepository.countByUserAndStatus(user, "completed");
+
+        if (completedChallengeCount == 1 && !ownedAchievementIds.contains("AC0011")) {
             AchievementResponse res = unlockAchievement("AC0011", user);
             if (res != null) unlockedAchievements.add(res);
         }
+
 
         return unlockedAchievements;
     }
@@ -152,6 +162,7 @@ public class AchievementService {
                 .map(ach -> toAchievementResponse(ach, unlockedIds.contains(ach.getAchievementId())))
                 .collect(Collectors.toList());
     }
+
 }
 
 

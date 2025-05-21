@@ -6,7 +6,7 @@ import com.example.breakfreeBE.achievement.service.AchievementService;
 import com.example.breakfreeBE.challenge.dto.*;
 import com.example.breakfreeBE.challenge.entity.Challenge;
 import com.example.breakfreeBE.challenge.entity.ChallengeData;
-import com.example.breakfreeBE.challenge.entity.*;
+import com.example.breakfreeBE.challenge.entity.ChallengeProgress;
 import com.example.breakfreeBE.challenge.repository.ChallengeDataRepository;
 import com.example.breakfreeBE.challenge.repository.ChallengeProgressRepository;
 import com.example.breakfreeBE.challenge.repository.ChallengeRepository;
@@ -35,25 +35,19 @@ public class ChallengeService {
     private ChallengeProgressRepository challengeProgressRepository;
 
     @Autowired
-    private UserRepository userRepository;
+    private UserRepository userRepository; // Ditambahkan dari file pertama
 
     @Autowired
-    private AchievementService achievementService;
+    private AchievementService achievementService; // Ditambahkan dari file pertama
 
+    // --- Dari kedua file: mengambil metode getAllDailyChallenges ---
     public List<ChallengeData> getAllDailyChallenges() {
         return challengeDataRepository.findAll();
     }
 
-    private boolean isToday(long epochMillis) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTimeInMillis(epochMillis);
-        int year = calendar.get(Calendar.YEAR);
-        int dayOfYear = calendar.get(Calendar.DAY_OF_YEAR);
-
-        Calendar now = Calendar.getInstance();
-        return year == now.get(Calendar.YEAR) && dayOfYear == now.get(Calendar.DAY_OF_YEAR);
-    }
-
+    // --- Menggabungkan getOngoingChallenges ---
+    // Versi file pertama return DTO ChallengeOngoingResponse, versi kedua return entity Challenge
+    // Dipilih versi pertama yang lebih lengkap (return DTO)
     public List<ChallengeOngoingResponse> getOngoingChallenges(String userId) {
         List<Challenge> challenges = challengeRepository.findByUser_UserIdAndStatus(userId, "ongoing");
 
@@ -79,6 +73,7 @@ public class ChallengeService {
         }).toList();
     }
 
+    // --- participateChallenge ---
     public BaseResponse<?> participateChallenge(ChallengeUserRequest request) {
         String challengeDataId = request.getChallengeDataId();
         String userId = request.getUserId();
@@ -96,7 +91,9 @@ public class ChallengeService {
 
         Challenge challenge = new Challenge();
         challenge.setChallengeId(UUID.randomUUID().toString().substring(0, 6)); // sesuai ERD
+        challenge.setUserId(userId);
         challenge.setUser(user);
+        challenge.setChallengeDataId(challengeDataId);
         challenge.setChallengeData(challengeData);
         challenge.setStatus("ongoing");
         challenge.setStartDate(System.currentTimeMillis());
@@ -112,11 +109,12 @@ public class ChallengeService {
         if (!unlockedAchievements.isEmpty()) {
             AchievementResponse first = unlockedAchievements.get(0);
             AchievementSimpleResponse achievementSimple = new AchievementSimpleResponse(
+                    first.getAchievementDesc(),
                     first.getAchievementId(),
                     first.getAchievementName(),
                     first.getAchievementUrl()
             );
-            dataResponse = new ParticipateChallengeDataResponse(achievementSimple, challenge.getChallengeId());
+            dataResponse = new ParticipateChallengeDataResponse(achievementSimple);
             meta = new MetaResponse(true, "Challenge joined successfully and achievement earned");
         } else {
             dataResponse = "Participated successfully";
@@ -126,6 +124,8 @@ public class ChallengeService {
         return new BaseResponse<>(meta, dataResponse);
     }
 
+    // --- updateProgress ---
+    // Menggunakan versi file pertama yang lebih lengkap dengan validasi, response achievement, dan status challenge
     public BaseResponse<Map<String, Object>> updateProgress(ChallengeUserRequest request) {
         String challengeId = request.getChallengeId();
         String userId = request.getUserId();
@@ -144,6 +144,7 @@ public class ChallengeService {
         ChallengeProgress progress = new ChallengeProgress();
         progress.setProgressId(UUID.randomUUID().toString().substring(0, 6));
         progress.setChallenge(challenge);
+        progress.setChallengeId(challenge.getChallengeId());
         progress.setProgressDate(System.currentTimeMillis());
         challengeProgressRepository.save(progress);
 
@@ -167,10 +168,10 @@ public class ChallengeService {
         Map<String, Object> result = new LinkedHashMap<>();
 
         if (!simpleAchievements.isEmpty()) {
-            result.put("Achievements", simpleAchievements);
+            result.put("Achievements", simpleAchievements.get(0));
         }
 
-        result.put("challengeId", challenge.getChallengeId());
+        result.put("completed", completed);
 
         // Buat message dinamis
         StringBuilder messageBuilder = new StringBuilder("Progress updated");
@@ -180,18 +181,21 @@ public class ChallengeService {
         return BaseResponse.success(messageBuilder.toString(), result);
     }
 
-
+    // --- stopChallenge ---
+    // Gabungkan cara file kedua yang lebih lengkap dengan delete progress dulu
     @Transactional
     public void stopChallenge(ChallengeUserRequest request) {
         String challengeId = request.getChallengeId();
         String userId = request.getUserId();
 
-        Challenge challenge = challengeRepository.findByChallengeIdAndUser_UserId(challengeId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Challenge not found"));
-
-        challengeRepository.delete(challenge); // ini menghapus dengan benar berdasarkan ID
+        // Hapus progress terkait dulu (file kedua)
+        challengeProgressRepository.deleteByChallengeIdAndUserId(challengeId, userId);
+        // Baru hapus challenge
+        challengeRepository.deleteByChallengeIdAndUserId(challengeId, userId);
     }
 
+    // --- getCompletedChallenges ---
+    // Pilih versi pertama yang return DTO response yang lebih kaya
     public List<ChallengeCompletedResponse> getCompletedChallenges(String userId) {
         List<Challenge> challenges = challengeRepository.findByUser_UserIdAndStatus(userId, "completed");
 
@@ -210,7 +214,8 @@ public class ChallengeService {
         }).collect(Collectors.toList());
     }
 
-
+    // --- getChallengeDetail ---
+    // Menggunakan versi file pertama yang return DTO ChallengeDetailResponse lengkap
     public ChallengeDetailResponse getChallengeDetail(ChallengeUserRequest request) {
         Challenge challenge = challengeRepository.findByChallengeIdAndUser_UserId(
                 request.getChallengeId(),
@@ -229,35 +234,45 @@ public class ChallengeService {
                 data.getChallengeUrl(),
                 challenge.getStartDate(),
                 challenge.getTimesComplete(),
-                challenge.getStatus()
+                challenge.getStatus(),
+                data.getAddictionData().getAddictionName()
         );
     }
 
+    // --- getWeeklyLogs ---
+    // Metode tambahan dari file pertama
     public List<Long> getWeeklyLogs(String userId, String challengeId) {
         long now = System.currentTimeMillis();
         long millisPerDay = 24 * 60 * 60 * 1000;
 
-        // Hitung waktu mulai dari 7 hari terakhir (termasuk hari ini)
-        long startOfToday = now - (now % millisPerDay); // reset ke pukul 00:00 hari ini
-        long startWindow = startOfToday - (millisPerDay * 6); // 6 hari ke belakang + hari ini = 7 hari
+        long startOfToday = now - (now % millisPerDay);
+        long startWindow = startOfToday - (millisPerDay * 6);
 
-        // Ambil progress dari 7 hari terakhir
         List<ChallengeProgress> logs = challengeProgressRepository.findLogsInRange(challengeId, startWindow, now);
 
-        // Map: index 0–6 → progress timestamp atau null
         Map<Integer, Long> dailyLogMap = new HashMap<>();
         for (ChallengeProgress log : logs) {
             long progressDate = log.getProgressDate();
             int dayIndex = (int) ((progressDate - startWindow) / millisPerDay);
-            dailyLogMap.putIfAbsent(dayIndex, progressDate); // 1 log per hari
+            dailyLogMap.putIfAbsent(dayIndex, progressDate);
         }
 
-        // Hasil akhir: urut dari 6 hari lalu → hari ini
         List<Long> result = new ArrayList<>();
         for (int i = 0; i < 7; i++) {
             result.add(dailyLogMap.getOrDefault(i, null));
         }
 
         return result;
+    }
+
+    // --- Helper method isToday dari file pertama ---
+    private boolean isToday(long epochMillis) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(epochMillis);
+        int year = calendar.get(Calendar.YEAR);
+        int dayOfYear = calendar.get(Calendar.DAY_OF_YEAR);
+
+        Calendar now = Calendar.getInstance();
+        return year == now.get(Calendar.YEAR) && dayOfYear == now.get(Calendar.DAY_OF_YEAR);
     }
 }

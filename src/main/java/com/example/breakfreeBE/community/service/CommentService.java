@@ -1,5 +1,12 @@
 package com.example.breakfreeBE.community.service;
 
+import com.example.breakfreeBE.achievement.entity.Achievement;
+import com.example.breakfreeBE.achievement.entity.AchievementUser;
+import com.example.breakfreeBE.achievement.entity.AchievementUserId;
+import com.example.breakfreeBE.achievement.repository.AchievementRepository;
+import com.example.breakfreeBE.achievement.repository.AchievementUserRepository;
+import com.example.breakfreeBE.avatar.entity.Avatar;
+import com.example.breakfreeBE.avatar.repository.AvatarRepository;
 import com.example.breakfreeBE.community.dto.CommentDTO;
 import com.example.breakfreeBE.community.entity.Comment;
 import com.example.breakfreeBE.community.entity.Post;
@@ -11,48 +18,98 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
+import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 public class CommentService {
+    private static final String FIRST_COMMENT_ACHIEVEMENT_ID = "AC0007";
 
-    @Autowired
-    private CommentRepository commentRepository;
-
-    @Autowired
     private UserRepository userRepository;
-
-    @Autowired
+    private AchievementUserRepository achievementUserRepository;
+    private AchievementRepository achievementRepository;
+    private CommentRepository commentRepository;
+    private AvatarRepository avatarRepository;
     private PostRepository postRepository;
 
+    @Autowired
+    public CommentService(AchievementRepository achievementRepository, AchievementUserRepository achievementUserRepository, UserRepository userRepository, CommentRepository commentRepository, AvatarRepository avatarRepository, PostRepository postRepository
+    ){
+        this.achievementRepository = achievementRepository;
+        this.achievementUserRepository = achievementUserRepository;
+        this.userRepository = userRepository;
+        this.commentRepository = commentRepository;
+        this.avatarRepository = avatarRepository;
+        this.postRepository = postRepository;
+    }
 
-    // Create a new comment
     @Transactional
-    public CommentDTO createComment(CommentDTO commentDTO) {
-        // Check if post exists
+    public Map<String, Object> createComment(CommentDTO commentDTO) {
         Optional<Post> postOptional = postRepository.findById(commentDTO.getPostId());
-
-        // Generate comment ID with format C00001, C00002, etc.
         String commentId = generateCommentId();
 
-        // Create new comment
         Comment comment = new Comment();
         comment.setCommentId(commentId);
         comment.setPostId(commentDTO.getPostId());
         comment.setUserId(commentDTO.getUserId());
         comment.setCommentText(commentDTO.getCommentText());
-        comment.setCommentDate(LocalDate.now()); // Current date
+        comment.setCommentDate(Instant.now().toEpochMilli());
 
-        // Save comment
         Comment savedComment = commentRepository.save(comment);
 
-        return convertToDTO(savedComment);
+        Map<String, Object> result = new HashMap<>();
+        result.put("comment", convertToDTO(savedComment));
+
+        commentAchievement(commentDTO.getUserId(), result);
+
+        return result;
     }
 
-    // Get all comments by Post ID
+    private void commentAchievement(String userId, Map<String, Object> result) {
+        long commentCount = commentRepository.countByUserId(userId);
+
+        if (commentCount == 1) {
+            boolean hasAchievement = achievementUserRepository.existsByIdUserIdAndIdAchievementId(userId, FIRST_COMMENT_ACHIEVEMENT_ID);
+
+            if (!hasAchievement) {
+                Optional<Achievement> achievementOpt = achievementRepository.findById(FIRST_COMMENT_ACHIEVEMENT_ID);
+
+                if (achievementOpt.isPresent()) {
+                    Achievement achievement = achievementOpt.get();
+                    Optional<User> userOpt = userRepository.findById(userId);
+
+                    if (userOpt.isPresent()) {
+                        User user = userOpt.get();
+
+                        AchievementUserId achievementUserId = new AchievementUserId();
+                        achievementUserId.setUserId(userId);
+                        achievementUserId.setAchievementId(FIRST_COMMENT_ACHIEVEMENT_ID);
+
+                        AchievementUser achievementUser = new AchievementUser();
+                        achievementUser.setId(achievementUserId);
+                        achievementUser.setUser(user);
+                        achievementUser.setAchievement(achievement);
+                        achievementUser.setAchievementDate(System.currentTimeMillis());
+
+                        achievementUserRepository.save(achievementUser);
+
+                        Map<String, String> achievementInfo = new HashMap<>();
+                        achievementInfo.put("achievementId", achievement.getAchievementId());
+                        achievementInfo.put("achievementName", achievement.getAchievementName());
+                        achievementInfo.put("achievementUrl", achievement.getAchievementUrl());
+                        achievementInfo.put("achievementDesc", achievement.getAchievementDesc());
+
+                        result.put("achievement", achievementInfo);
+                    }
+                }
+            }
+        }
+    }
+
     public List<CommentDTO> getCommentsByPost(String postId) {
         List<Comment> comments = commentRepository.findByPostIdOrderByCommentIdDesc(postId);
         return comments.stream()
@@ -60,8 +117,6 @@ public class CommentService {
                 .collect(Collectors.toList());
     }
 
-
-    // Helper method to generate next comment ID with format C00001
     private String generateCommentId() {
         Optional<String> lastCommentIdOpt = commentRepository.findLastCommentId();
 
@@ -74,7 +129,6 @@ public class CommentService {
         }
     }
 
-    // Helper method to convert Comment to CommentDTO
     public CommentDTO convertToDTO(Comment comment) {
         CommentDTO dto = new CommentDTO();
         dto.setCommentId(comment.getCommentId());
@@ -83,9 +137,17 @@ public class CommentService {
         dto.setCommentText(comment.getCommentText());
         dto.setCommentDate(comment.getCommentDate());
 
-        // Fetch username from User repository
         Optional<User> user = userRepository.findById(comment.getUserId());
-        user.ifPresent(u -> dto.setUsername(u.getUsername()));
+        if (user.isPresent()) {
+            User userEntity = user.get();
+            dto.setUsername(userEntity.getUsername());
+
+            String avatarId = userEntity.getAvatarId();
+            if (avatarId != null) {
+                Optional<Avatar> avatar = avatarRepository.findById(avatarId);
+                avatar.ifPresent(a -> dto.setAvatarUrl(a.getAvatarUrl()));
+            }
+        }
 
         return dto;
     }

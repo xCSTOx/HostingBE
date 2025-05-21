@@ -29,7 +29,7 @@ public class Post {
     private String postText;
 
     @Column(name = "post_date", nullable = false)
-    private LocalDate postDate;
+    private Long postDate;
 
     @Column(name = "achievement_id", length = 6)
     private String achievementId;
@@ -54,4 +54,3 @@ public class Post {
     @JsonManagedReference
     private List<BookmarkedPost> bookmarkedPosts;
 }
-

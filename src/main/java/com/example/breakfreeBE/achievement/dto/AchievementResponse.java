@@ -6,6 +6,7 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AchievementResponse {
+    private String achievementDesc;
     private String achievementId;
     private String achievementName;
     private String achievementUrl;

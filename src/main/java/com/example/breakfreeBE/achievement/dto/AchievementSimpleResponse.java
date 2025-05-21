@@ -8,7 +8,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AchievementSimpleResponse {
+
+    private String achievementDesc;
     private String achievementId;
     private String achievementName;
     private String achievementUrl;
+
 }

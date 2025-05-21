@@ -30,7 +30,7 @@ public class Comment {
     private String commentText;
 
     @Column(name = "comment_date",  nullable = false)
-    private LocalDate commentDate;
+    private Long commentDate;
 
     // Relationships
     @ManyToOne

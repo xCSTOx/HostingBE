@@ -11,6 +11,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ParticipateChallengeDataResponse {
-    private AchievementSimpleResponse achievement;  // bisa null
+    private AchievementSimpleResponse achievement;// bisa null
+
+    public ParticipateChallengeDataResponse(AchievementSimpleResponse achievement) {
+        this.achievement = achievement;
+    }
+
     private String challengeId;
 }

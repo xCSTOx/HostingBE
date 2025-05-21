@@ -11,12 +11,6 @@ import java.util.Optional;
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, String> {
 
-    // Find comments by user ID
-    List<Comment> findByUserId(String userId);
-
-    // Find comments by post ID
-    List<Comment> findByPostId(String postId);
-
     // Delete comments by post ID
     void deleteByPostId(String postId);
 
@@ -24,5 +18,7 @@ public interface CommentRepository extends JpaRepository<Comment, String> {
 
     @Query("SELECT c.commentId FROM Comment c ORDER BY c.commentId DESC LIMIT 1")
     Optional<String> findLastCommentId();
-}
 
+    @Query("SELECT COUNT(a) FROM Comment a JOIN a.user u WHERE u.userId = :userId")
+    long countByUserId(String userId);
+}

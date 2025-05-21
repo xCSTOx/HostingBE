@@ -14,15 +14,6 @@ public interface PostRepository extends JpaRepository<Post, String> {
     // Find all posts by user ID
     List<Post> findByUserId(String userId);
 
-    // Find all posts by addiction ID
-    List<Post> findByAddictionId(String addictionId);
-
-    // Find all posts by challenge ID
-    List<Post> findByChallengeId(String challengeId);
-
-    // Find all posts by achievement ID
-    List<Post> findByAchievementId(String achievementId);
-
     // Find bookmarked posts by user ID
     @Query("SELECT p FROM Post p JOIN BookmarkedPost bp ON p.postId = bp.postId WHERE bp.userId = :userId")
     List<Post> findBookmarkedPostsByUserId(@Param("userId") String userId);
@@ -34,4 +25,7 @@ public interface PostRepository extends JpaRepository<Post, String> {
     // Find the last/highest post ID for generating the next ID
     @Query("SELECT p.postId FROM Post p ORDER BY p.postId DESC LIMIT 1")
     Optional<String> findLastPostId();
+
+    @Query("SELECT COUNT(a) FROM Post a JOIN a.user u WHERE u.userId = :userId")
+    long countByUserId(String userId);
 }

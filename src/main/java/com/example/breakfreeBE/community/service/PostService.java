@@ -1,82 +1,166 @@
 package com.example.breakfreeBE.community.service;
 
-import com.example.breakfreeBE.community.dto.CommentDTO;
-import com.example.breakfreeBE.community.entity.Comment;
+import com.example.breakfreeBE.achievement.entity.Achievement;
+import com.example.breakfreeBE.achievement.entity.AchievementUser;
+import com.example.breakfreeBE.achievement.entity.AchievementUserId;
+import com.example.breakfreeBE.achievement.repository.AchievementRepository;
+import com.example.breakfreeBE.achievement.repository.AchievementUserRepository;
+import com.example.breakfreeBE.addiction.repository.AddictionDataRepository;
+import com.example.breakfreeBE.addiction.repository.AddictionRepository;
+import com.example.breakfreeBE.avatar.repository.AvatarRepository;
+import com.example.breakfreeBE.challenge.repository.ChallengeDataRepository;
+import com.example.breakfreeBE.challenge.repository.ChallengeRepository;
 import com.example.breakfreeBE.community.entity.Post;
+import com.example.breakfreeBE.community.repository.BookmarkedPostRepository;
 import com.example.breakfreeBE.userRegistration.entity.User;
 import com.example.breakfreeBE.community.repository.CommentRepository;
 import com.example.breakfreeBE.community.repository.PostRepository;
 import com.example.breakfreeBE.userRegistration.repository.UserRepository;
 import com.example.breakfreeBE.community.dto.PostDTO;
-import com.example.breakfreeBE.community.dto.PostDetailDTO;
-import com.example.breakfreeBE.community.service.CommentService;
+import com.example.breakfreeBE.community.dto.PostRequestDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
-import java.time.LocalDate;
+import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 public class PostService {
 
-    @Autowired
-    private PostRepository postRepository;
+    private static final String FIRST_POST_ACHIEVEMENT_ID = "AC0010";
+
+    private final PostRepository postRepository;
+    private final CommentRepository commentRepository;
+    private final UserRepository userRepository;
+    private final CommentService commentService;
+    private final AvatarRepository avatarRepository;
+    private final AddictionRepository addictionRepository;
+    private final AddictionDataRepository addictionDataRepository;
+    private final AchievementRepository achievementRepository;
+    private final AchievementUserRepository achievementUserRepository;
+    private final ChallengeRepository challengeRepository;
+    private final ChallengeDataRepository challengeDataRepository;
+    private final BookmarkedPostRepository bookmarkedPostRepository;
 
     @Autowired
-    private CommentRepository commentRepository;
+    public PostService(
+            PostRepository postRepository,
+            CommentRepository commentRepository,
+            UserRepository userRepository,
+            CommentService commentService,
+            AvatarRepository avatarRepository,
+            AddictionRepository addictionRepository,
+            AddictionDataRepository addictionDataRepository,
+            AchievementRepository achievementRepository,
+            AchievementUserRepository achievementUserRepository,
+            ChallengeRepository challengeRepository,
+            ChallengeDataRepository challengeDataRepository,
+            BookmarkedPostRepository bookmarkedPostRepository) {
+        this.postRepository = postRepository;
+        this.commentRepository = commentRepository;
+        this.userRepository = userRepository;
+        this.commentService = commentService;
+        this.avatarRepository = avatarRepository;
+        this.addictionRepository = addictionRepository;
+        this.addictionDataRepository = addictionDataRepository;
+        this.achievementRepository = achievementRepository;
+        this.achievementUserRepository = achievementUserRepository;
+        this.challengeRepository = challengeRepository;
+        this.challengeDataRepository = challengeDataRepository;
+        this.bookmarkedPostRepository = bookmarkedPostRepository;
+    }
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private CommentService commentService;
-
-    public PostDTO createPost(PostDTO postDTO) {
-        // Generate post ID
+    public Map<String, Object> createPost(PostRequestDTO postRequestDTO) {
         String postId = generatePostId();
+        String userId = postRequestDTO.getUserId();
 
-        // Create new post
         Post post = new Post();
         post.setPostId(postId);
-        post.setUserId(postDTO.getUserId());
-        post.setPostText(postDTO.getPostText());
-        post.setPostDate(LocalDate.now()); // Current date
-        if (postDTO.getAchievementId() != null) {
-            post.setAchievementId(postDTO.getAchievementId());
+        post.setUserId(userId);
+        post.setPostText(postRequestDTO.getPostText());
+        post.setPostDate(postRequestDTO.getPostDate() != null ? postRequestDTO.getPostDate() : Instant.now().toEpochMilli());
+
+        if (postRequestDTO.getAchievementId() != null) {
+            post.setAchievementId(postRequestDTO.getAchievementId());
         }
 
-        if (postDTO.getAddictionId() != null) {
-            post.setAddictionId(postDTO.getAddictionId());
+        if (postRequestDTO.getAddictionId() != null) {
+            post.setAddictionId(postRequestDTO.getAddictionId());
         }
 
-        if (postDTO.getChallengeId() != null) {
-            post.setChallengeId(postDTO.getChallengeId());
+        if (postRequestDTO.getChallengeId() != null) {
+            post.setChallengeId(postRequestDTO.getChallengeId());
         }
-        // Save post
+
         Post savedPost = postRepository.save(post);
 
-        return convertToDTOP(savedPost);
+        Map<String, Object> result = new HashMap<>();
+        result.put("post", convertToDTOP(savedPost));
+
+        PostAchievement(userId, result);
+
+        return result;
+    }
+
+    private void PostAchievement(String userId, Map<String, Object> result) {
+
+        long postCount = postRepository.countByUserId(userId);
+
+        if (postCount == 1) {
+
+            boolean hasAchievement = achievementUserRepository.existsByIdUserIdAndIdAchievementId(userId, FIRST_POST_ACHIEVEMENT_ID);
+
+            if (!hasAchievement) {
+
+                Optional<Achievement> achievementOpt = achievementRepository.findById(FIRST_POST_ACHIEVEMENT_ID);
+
+                if (achievementOpt.isPresent()) {
+                    Achievement achievement = achievementOpt.get();
+
+                    Optional<User> userOpt = userRepository.findById(userId);
+                    if (userOpt.isPresent()) {
+                        User user = userOpt.get();
+
+                        AchievementUserId achievementUserId = new AchievementUserId();
+                        achievementUserId.setUserId(userId);
+                        achievementUserId.setAchievementId(FIRST_POST_ACHIEVEMENT_ID);
+
+                        AchievementUser achievementUser = new AchievementUser();
+                        achievementUser.setId(achievementUserId);
+                        achievementUser.setUser(user);
+                        achievementUser.setAchievement(achievement);
+                        achievementUser.setAchievementDate(System.currentTimeMillis());
+
+                        achievementUserRepository.save(achievementUser);
+
+                        Map<String, String> achievementInfo = new HashMap<>();
+                        achievementInfo.put("achievementId", achievement.getAchievementId());
+                        achievementInfo.put("achievementName", achievement.getAchievementName());
+                        achievementInfo.put("achievementUrl", achievement.getAchievementUrl());
+                        achievementInfo.put("achievementDesc", achievement.getAchievementDesc());
+
+                        result.put("achievement", achievementInfo);
+                    }
+                }
+            }
+        }
     }
 
     @Transactional
     public void deletePost(String postId, String userId) {
-        // Check if post exists
         Optional<Post> postOptional = postRepository.findById(postId);
 
         if (postOptional.isPresent()) {
             Post post = postOptional.get();
 
-            // Check if the user is authorized to delete this post
             if (post.getUserId().equals(userId)) {
-                // Delete all comments related to this post
                 commentRepository.deleteByPostId(postId);
-
-                // Delete the post
                 postRepository.deleteById(postId);
             } else {
                 throw new RuntimeException("User is not authorized to delete this post");
@@ -86,79 +170,50 @@ public class PostService {
         }
     }
 
-    public PostDTO updatePost(PostDTO postDTO) {
-        // Check if post exists
-        Optional<Post> postOptional = postRepository.findById(postDTO.getPostId());
-
-        if (postOptional.isPresent()) {
-            Post post = postOptional.get();
-
-            // Check if the user is authorized to update this post
-            if (post.getUserId().equals(postDTO.getUserId())) {
-                // Update post fields
-                post.setPostText(postDTO.getPostText());
-
-                // Update optional fields if present in the request
-                if (postDTO.getAchievementId() != null) {
-                    post.setAchievementId(postDTO.getAchievementId());
-                }
-
-                if (postDTO.getAddictionId() != null) {
-                    post.setAddictionId(postDTO.getAddictionId());
-                }
-
-                if (postDTO.getChallengeId() != null) {
-                    post.setChallengeId(postDTO.getChallengeId());
-                }
-
-                // Save updated post
-                Post updatedPost = postRepository.save(post);
-
-                return convertToDTOP(updatedPost);
-            } else {
-                throw new RuntimeException("User is not authorized to update this post");
-            }
-        } else {
-            throw new RuntimeException("Post not found with id: " + postDTO.getPostId());
-        }
-    }
-
-    public PostDetailDTO getPostDetailsById(String postId, String userId) {
-        // Check if post exists
+    public PostDTO updatePost(PostRequestDTO postRequestDTO) {
+        String postId = postRequestDTO.getPostId();
         Optional<Post> postOptional = postRepository.findById(postId);
 
         if (postOptional.isPresent()) {
             Post post = postOptional.get();
 
-            // Get comments for this post
-            List<Comment> comments = commentRepository.findByPostIdOrderByCommentIdDesc(postId);
+            if (post.getUserId().equals(postRequestDTO.getUserId())) {
+                post.setPostText(postRequestDTO.getPostText());
 
-            // Map comments to CommentDTOs with username
-            List<CommentDTO> commentsu = comments.stream()
-                    .map(comment -> {
-                        CommentDTO dto = commentService.convertToDTO(comment);
-                        Optional<User> commentUser = userRepository.findById(comment.getUserId());
-                        commentUser.ifPresent(user -> dto.setUsername(user.getUsername()));
-                        return dto;
-                    })
-                    .collect(Collectors.toList());
+                if (postRequestDTO.getAchievementId() != null) {
+                    post.setAchievementId(postRequestDTO.getAchievementId());
+                }
 
-            // Create PostDetailDTO
-            PostDetailDTO postDetailDTO = new PostDetailDTO();
-            postDetailDTO.setPost(convertToDTOP(post));
+                if (postRequestDTO.getAddictionId() != null) {
+                    post.setAddictionId(postRequestDTO.getAddictionId());
+                }
 
-            // Gunakan commentDTOs, bukan comments
-            postDetailDTO.setCommentsu(commentsu); // Ubah ini di PostDetailDTO
+                if (postRequestDTO.getChallengeId() != null) {
+                    post.setChallengeId(postRequestDTO.getChallengeId());
+                }
 
-            return postDetailDTO;
+                Post updatedPost = postRepository.save(post);
+                return convertToDTOP(updatedPost);
+            } else {
+                throw new RuntimeException("User is not authorized to update this post");
+            }
         } else {
             throw new RuntimeException("Post not found with id: " + postId);
         }
     }
 
-    // Method to get all posts sorted by postId in descending order (newest first)
+    public PostDTO getPostDetailsById(String postId, String userId) {
+        Optional<Post> postOptional = postRepository.findById(postId);
+
+        if (postOptional.isPresent()) {
+            Post post = postOptional.get();
+            return convertToDTOP(post);
+        } else {
+            throw new RuntimeException("Post not found with id: " + postId);
+        }
+    }
+
     public List<PostDTO> getAllPosts() {
-        // Using Spring Data's Sort capability to sort by postId in descending order
         List<Post> posts = postRepository.findAll(Sort.by(Sort.Direction.DESC, "postId"));
 
         return posts.stream()
@@ -173,7 +228,6 @@ public class PostService {
                 .collect(Collectors.toList());
     }
 
-    // Generate post ID with the format P00001, P00002, etc.
     private String generatePostId() {
         Optional<String> lastPostIdOpt = postRepository.findLastPostId();
         String lastPostId = lastPostIdOpt.orElse("P00000");
@@ -182,28 +236,84 @@ public class PostService {
             int numericPart = Integer.parseInt(lastPostId.substring(1));
             return String.format("P%05d", numericPart + 1);
         } catch (NumberFormatException e) {
-            // log error dan fallback
-            System.err.println("Format lastPostId tidak valid: " + lastPostId);
+            System.err.println("Invalid lastPostId format: " + lastPostId);
             return "P00001";
         }
     }
 
-
-    // Helper method to convert Post to PostDTO
     public PostDTO convertToDTOP(Post post) {
         PostDTO dto = new PostDTO();
         dto.setPostId(post.getPostId());
-        dto.setUserId(post.getUserId());
         dto.setPostText(post.getPostText());
         dto.setPostDate(post.getPostDate());
-        dto.setAchievementId(post.getAchievementId());
-        dto.setAddictionId(post.getAddictionId());
-        dto.setChallengeId(post.getChallengeId());
-        // Fetch username from User repository
-        Optional<User> user = userRepository.findById(post.getUserId());
-        user.ifPresent(u -> dto.setUsername(u.getUsername()));
+
+        boolean isBookmarked = bookmarkedPostRepository.existsByUserIdAndPostId(post.getUserId(), post.getPostId());
+        dto.setBookmarked(isBookmarked);
+
+        userRepository.findById(post.getUserId()).ifPresent(user -> {
+            PostDTO.ProfileDTO profileDTO = new PostDTO.ProfileDTO();
+            profileDTO.setUserId(user.getUserId());
+            profileDTO.setUsername(user.getUsername());
+
+            if (user.getAvatarId() != null) {
+                avatarRepository.findById(user.getAvatarId())
+                        .ifPresent(avatar -> profileDTO.setAvatarUrl(avatar.getAvatarUrl()));
+            }
+
+            dto.setProfile(profileDTO);
+        });
+
+        if (post.getAddictionId() != null) {
+            addictionRepository.findByUserIdAndAddictionId(post.getUserId(), post.getAddictionId())
+                    .ifPresent(addiction -> {
+                        PostDTO.StreakDataDTO streakData = new PostDTO.StreakDataDTO();
+                        streakData.setAddictionId(addiction.getAddictionId());
+
+                        // Nama addiksi dari addiction_data
+                        addictionDataRepository.findById(addiction.getAddictionId())
+                                .ifPresent(addictionData -> streakData.setAddictionName(addictionData.getAddictionName()));
+
+                        long now = System.currentTimeMillis();
+                        long startDate = addiction.getStartDate();
+                        long calculatedStreak = (now - startDate) / (1000 * 60 * 60 * 24); // dalam hari
+                        Long streaks = addiction.getStreaks();
+
+                        if (streaks != null && streaks > calculatedStreak) {
+                            streakData.setStreakDays(streaks);
+                        } else {
+                            streakData.setStreakDays(calculatedStreak);
+                        }
+
+                        dto.setStreakData(streakData);
+                    });
+        }
+
+        if (post.getAchievementId() != null) {
+            achievementRepository.findById(post.getAchievementId())
+                    .ifPresent(achievement -> {
+                        PostDTO.AchievementDataDTO achievementData = new PostDTO.AchievementDataDTO();
+                        achievementData.setAchievementId(achievement.getAchievementId());
+                        achievementData.setAchievementName(achievement.getAchievementName());
+                        achievementData.setAchievementUrl(achievement.getAchievementUrl());
+                        dto.setAchievementData(achievementData);
+                    });
+        }
+
+        if (post.getChallengeId() != null) {
+            challengeRepository.findById(post.getChallengeId())
+                    .ifPresent(challenge -> {
+                        challengeDataRepository.findById(challenge.getChallengeDataId())
+                                .ifPresent(challengeData -> {
+                                    PostDTO.ChallengeDataDTO challengeDataDTO = new PostDTO.ChallengeDataDTO();
+                                    challengeDataDTO.setChallengeId(challenge.getChallengeId());
+                                    challengeDataDTO.setChallengeName(challengeData.getChallengeName());
+                                    challengeDataDTO.setChallengeUrl(challengeData.getChallengeUrl());
+                                    challengeDataDTO.setColor(challengeData.getColor());
+                                    dto.setChallengeData(challengeDataDTO);
+                                });
+                    });
+        }
+
         return dto;
     }
-
-
 }

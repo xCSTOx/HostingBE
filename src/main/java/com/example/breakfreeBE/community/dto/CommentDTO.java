@@ -10,6 +10,7 @@ public class CommentDTO {
     private String postId;
     private String userId;
     private String commentText;
-    private LocalDate commentDate;
-    private String username; // Join with User table to get username
+    private Long commentDate;
+    private String username;
+    private String avatarUrl;
 }

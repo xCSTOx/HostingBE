@@ -18,4 +18,5 @@ public class ChallengeDetailResponse {
     private Long startDate;
     private int timesComplete;
     private String status;
+    private String addictionName;
 }

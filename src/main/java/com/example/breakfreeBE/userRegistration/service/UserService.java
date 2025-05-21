@@ -55,7 +55,12 @@ public class UserService {
         String hashedPassword = passwordEncoder.encode(password);
         String newUserId = generateNextUserId();
 
+        Avatar defaultAvatar = avatarRepository.findById("AR0001")
+                .orElseThrow(() -> new RuntimeException("Default avatar not found"));
+
         User newUser = new User(newUserId, username, hashedPassword);
+        newUser.setAvatar(defaultAvatar);
+
         return userRepository.save(newUser);
     }
 
@@ -140,19 +145,17 @@ public class UserService {
         List<AchievementResponse> unlocked = unlockAchievementIfFirstProfileUpdate(user);
 
         if (!unlocked.isEmpty()) {
+            AchievementResponse unlockedAchievement = unlocked.get(0); // diasumsikan hanya 1 achievement
+            Map<String, Object> achievementMap = new LinkedHashMap<>();
+            achievementMap.put("achievementDesc", unlockedAchievement.getAchievementDesc());
+            achievementMap.put("achievementId", unlockedAchievement.getAchievementId());
+            achievementMap.put("achievementName", unlockedAchievement.getAchievementName());
+            achievementMap.put("achievementUrl", unlockedAchievement.getAchievementUrl());
+
             Map<String, Object> responseData = new LinkedHashMap<>();
-            responseData.put("Achievement", unlocked.stream().map(a -> {
-                LinkedHashMap<String, Object> map = new LinkedHashMap<>();
-                map.put("achievementId", a.getAchievementId());
-                map.put("achievementName", a.getAchievementName());
-                map.put("achievementUrl", a.getAchievementUrl());
-                return map;
-            }).toList());
-            responseData.put("userId", user.getUserId());
+            responseData.put("Achievement", achievementMap);
 
-            String message = "User updated successfully; Achievement Earned!";
-
-            return BaseResponse.success(message, responseData);
+            return BaseResponse.success("User updated successfully; Achievement Earned!", responseData);
         }
 
         return BaseResponse.success("User updated successfully", updateMessages.toString());
@@ -181,6 +184,7 @@ public class UserService {
         achievementUserRepository.save(achievementUser);
 
         AchievementResponse response = new AchievementResponse(
+                achievement.getAchievementDesc(),
                 achievement.getAchievementId(),
                 achievement.getAchievementName(),
                 achievement.getAchievementUrl(),
@@ -245,6 +249,7 @@ public class UserService {
                 .sorted((a, b) -> b.getAchievementDate().compareTo(a.getAchievementDate()))
                 .limit(3)
                 .map(a -> new AchievementResponse(
+                        a.getAchievement().getAchievementDesc(),
                         a.getAchievement().getAchievementId(),
                         a.getAchievement().getAchievementName(),
                         a.getAchievement().getAchievementUrl(),
@@ -295,6 +300,7 @@ public class UserService {
                 .map(au -> {
                     Achievement a = au.getAchievement();
                     return new AchievementResponse(
+                            a.getAchievementDesc(),
                             a.getAchievementId(),
                             a.getAchievementName(),
                             a.getAchievementUrl(),

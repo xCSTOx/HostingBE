@@ -21,4 +21,7 @@ public class Achievement {
 
     @Column(name = "achievement_url")
     private String achievementUrl;
+
+    @Column(name= "achievement_desc")
+    private String achievementDesc;
 }
