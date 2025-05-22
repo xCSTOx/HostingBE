@@ -26,8 +26,8 @@ public class CommentController {
         try {
             if (commentDTO.getPostId() == null || commentDTO.getUserId() == null || commentDTO.getCommentText() == null ||
                     commentDTO.getPostId().isBlank() || commentDTO.getUserId().isBlank() || commentDTO.getCommentText().isBlank()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                        new BaseResponse<>(new MetaResponse(false, "Comment not found"), null)
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                        new BaseResponse<>(new MetaResponse(false, "Required fields cannot be empty"), null)
                 );
             }
 
@@ -35,7 +35,7 @@ public class CommentController {
             CommentDTO createdComment = (CommentDTO) result.get("comment");
 
             Map<String, Object> responseData = new HashMap<>();
-            responseData.put("commentId", createdComment.getCommentId());
+            responseData.put("comment", createdComment);
 
             if (result.containsKey("achievement")) {
                 responseData.put("achievement", result.get("achievement"));
@@ -58,8 +58,8 @@ public class CommentController {
     public ResponseEntity<BaseResponse<List<CommentDTO>>> getCommentsByPost(@RequestBody CommentDTO commentDTO) {
         try {
             if (commentDTO.getPostId() == null || commentDTO.getPostId().isBlank()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                        new BaseResponse<>(new MetaResponse(false, "Comment not found"), null)
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                        new BaseResponse<>(new MetaResponse(false, "Post ID cannot be empty"), null)
                 );
             }
 
