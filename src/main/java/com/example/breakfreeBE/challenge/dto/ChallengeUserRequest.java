@@ -8,9 +8,9 @@ import lombok.Setter;
 @Getter
 public class ChallengeUserRequest {
 
-    private String challengeId;       // opsional, untuk operasi update/detail/stop
+    private String challengeId;
 
-    private String challengeDataId;   // opsional, untuk operasi participate (ikuti tantangan)
+    private String challengeDataId;
 
     @NotBlank(message = "User ID must not be blank")
     private String userId;

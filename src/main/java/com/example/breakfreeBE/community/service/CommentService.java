@@ -62,7 +62,9 @@ public class CommentService {
         Comment savedComment = commentRepository.save(comment);
 
         Map<String, Object> result = new HashMap<>();
-        result.put("comment", convertToDTO(savedComment));
+        // Convert to DTO with complete user information (username, avatar)
+        CommentDTO newCommentDTO = convertToDTO(savedComment);
+        result.put("comment", newCommentDTO);
 
         commentAchievement(commentDTO.getUserId(), result);
 

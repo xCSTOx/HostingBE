@@ -22,18 +22,10 @@ public class ChallengeController {
     @Autowired
     private ChallengeService challengeService;
 
-    @PostMapping("/detail")
-    public ResponseEntity<BaseResponse<ChallengeDetailResponse>> getChallengeDetail(
-            @Valid @RequestBody ChallengeUserRequest request) {
-
-        ChallengeDetailResponse response = challengeService.getChallengeDetail(request);
-        return ResponseEntity.ok(new BaseResponse<>(new MetaResponse(true, "Challenge detail retrieved"), response));
-    }
-
-    @GetMapping("/data")
-    public ResponseEntity<BaseResponse<List<ChallengeData>>> getAllDailyChallenges() {
-        List<ChallengeData> challenges = challengeService.getAllDailyChallenges();
-        return ResponseEntity.ok(new BaseResponse<>(new MetaResponse(true, "All challenges retrieved"), challenges));
+    @PostMapping("/challenges/data")
+    public BaseResponse<List<DailyChallengeResponse>> getAllDailyChallenges(@RequestBody ChallengeUserRequest request) {
+        List<DailyChallengeResponse> challenges = challengeService.getAllDailyChallenges(request.getUserId());
+        return BaseResponse.success("All challenges retrieved", challenges);
     }
 
     @GetMapping("/users/{userId}/ongoing")
@@ -51,7 +43,7 @@ public class ChallengeController {
     @DeleteMapping("/stop")
     public ResponseEntity<BaseResponse<String>> stopChallenge(@Valid @RequestBody ChallengeUserRequest request) {
         challengeService.stopChallenge(request);
-        return ResponseEntity.ok(new BaseResponse<>(new MetaResponse(true, "Challenge stopped"), "Challenge removed"));
+        return ResponseEntity.ok(new BaseResponse<>(new MetaResponse(true, "Challenge stopped"), null));
     }
 
     @PostMapping("/progress")

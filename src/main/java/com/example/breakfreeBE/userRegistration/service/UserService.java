@@ -153,12 +153,12 @@ public class UserService {
             achievementMap.put("achievementUrl", unlockedAchievement.getAchievementUrl());
 
             Map<String, Object> responseData = new LinkedHashMap<>();
-            responseData.put("Achievement", achievementMap);
+            responseData.put("achievement", achievementMap);
 
             return BaseResponse.success("User updated successfully; Achievement Earned!", responseData);
         }
 
-        return BaseResponse.success("User updated successfully", updateMessages.toString());
+        return BaseResponse.success("User updated successfully", null);
     }
 
     private List<AchievementResponse> unlockAchievementIfFirstProfileUpdate(User user) {

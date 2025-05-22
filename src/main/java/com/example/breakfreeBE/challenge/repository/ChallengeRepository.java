@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,11 +28,16 @@ public interface ChallengeRepository extends JpaRepository<Challenge, String> {
 
     List<Challenge> findByUserAndStatus(User user, String status);
 
-    boolean existsByUserAndTimesComplete(User user, int timesComplete);
-
     @Modifying
+    @Transactional
     @Query("DELETE FROM Challenge c WHERE c.challengeId = :challengeId AND c.user.userId = :userId")
     void deleteByChallengeIdAndUserId(@Param("challengeId") String challengeId, @Param("userId") String userId);
+
+    List<Challenge> findByUser_UserId(String userId);
+
+    boolean existsByChallengeIdAndUserId(String challengeId, String userId);
+
+
 
 
 }

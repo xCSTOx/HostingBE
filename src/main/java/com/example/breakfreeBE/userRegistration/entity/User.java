@@ -75,4 +75,9 @@ public class User {
         this.password = password;
     }
 
+    public Addiction getAddiction() {
+        return (addictions != null && !addictions.isEmpty()) ? addictions.get(0) : null;
+    }
+
+
 }

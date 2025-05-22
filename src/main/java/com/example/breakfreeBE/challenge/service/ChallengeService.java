@@ -3,6 +3,7 @@ package com.example.breakfreeBE.challenge.service;
 import com.example.breakfreeBE.achievement.dto.AchievementResponse;
 import com.example.breakfreeBE.achievement.dto.AchievementSimpleResponse;
 import com.example.breakfreeBE.achievement.service.AchievementService;
+import com.example.breakfreeBE.addiction.entity.Addiction;
 import com.example.breakfreeBE.challenge.dto.*;
 import com.example.breakfreeBE.challenge.entity.Challenge;
 import com.example.breakfreeBE.challenge.entity.ChallengeData;
@@ -10,11 +11,13 @@ import com.example.breakfreeBE.challenge.entity.ChallengeProgress;
 import com.example.breakfreeBE.challenge.repository.ChallengeDataRepository;
 import com.example.breakfreeBE.challenge.repository.ChallengeProgressRepository;
 import com.example.breakfreeBE.challenge.repository.ChallengeRepository;
+import com.example.breakfreeBE.community.repository.PostRepository;
 import com.example.breakfreeBE.common.BaseResponse;
 import com.example.breakfreeBE.common.MetaResponse;
 import com.example.breakfreeBE.exception.ResourceNotFoundException;
 import com.example.breakfreeBE.userRegistration.entity.User;
 import com.example.breakfreeBE.userRegistration.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -40,9 +43,45 @@ public class ChallengeService {
     @Autowired
     private AchievementService achievementService; // Ditambahkan dari file pertama
 
-    // --- Dari kedua file: mengambil metode getAllDailyChallenges ---
-    public List<ChallengeData> getAllDailyChallenges() {
-        return challengeDataRepository.findAll();
+    @Autowired
+    private PostRepository postRepository;
+
+    public List<DailyChallengeResponse> getAllDailyChallenges(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Ambil semua addictionId user
+        List<String> addictionIds = user.getAddictions()
+                .stream()
+                .map(Addiction::getAddictionId)
+                .collect(Collectors.toList());
+
+        // Jika user tidak punya addiction, return list kosong
+        if (addictionIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // Ambil semua challenges yang terkait dengan addictionId user (multiple addiction)
+        List<ChallengeData> allChallengesByAddiction = challengeDataRepository.findByAddictionData_AddictionIdIn(addictionIds);
+
+        // Ambil list challengeDataId yang sudah diikuti user
+        List<String> joinedChallengeDataIds = challengeRepository.findByUser_UserId(userId)
+                .stream()
+                .map(challenge -> challenge.getChallengeData().getChallengeDataId())
+                .collect(Collectors.toList());
+
+        // Filter challenge yang belum diikuti user dan mapping ke response
+        return allChallengesByAddiction.stream()
+                .filter(cd -> !joinedChallengeDataIds.contains(cd.getChallengeDataId()))
+                .map(cd -> new DailyChallengeResponse(
+                        cd.getChallengeDataId(),
+                        cd.getChallengeName(),
+                        cd.getChallengeDesc(),
+                        cd.getTotalDays(),
+                        cd.getColor(),
+                        cd.getChallengeUrl()
+                ))
+                .collect(Collectors.toList());
     }
 
     // --- Menggabungkan getOngoingChallenges ---
@@ -66,7 +105,6 @@ public class ChallengeService {
                     c.getStartDate(),
                     c.getChallengeData().getTotalDays(),
                     c.getTimesComplete(),
-                    c.getStatus(),
                     weeklyLogs,
                     todayLogged
             );
@@ -117,7 +155,7 @@ public class ChallengeService {
             dataResponse = new ParticipateChallengeDataResponse(achievementSimple);
             meta = new MetaResponse(true, "Challenge joined successfully and achievement earned");
         } else {
-            dataResponse = "Participated successfully";
+            dataResponse = null;
             meta = new MetaResponse(true, "Challenge participation successful");
         }
 
@@ -168,7 +206,7 @@ public class ChallengeService {
         Map<String, Object> result = new LinkedHashMap<>();
 
         if (!simpleAchievements.isEmpty()) {
-            result.put("Achievements", simpleAchievements.get(0));
+            result.put("achievement", simpleAchievements.get(0));
         }
 
         result.put("completed", completed);
@@ -188,11 +226,16 @@ public class ChallengeService {
         String challengeId = request.getChallengeId();
         String userId = request.getUserId();
 
-        // Hapus progress terkait dulu (file kedua)
-        challengeProgressRepository.deleteByChallengeIdAndUserId(challengeId, userId);
-        // Baru hapus challenge
+        boolean exists = challengeRepository.existsByChallengeIdAndUserId(challengeId, userId);
+        if (!exists) throw new EntityNotFoundException("Challenge not found");
+        // Perbaikan delete progress
+        challengeProgressRepository.deleteByChallengeId(challengeId);
+
+        postRepository.deleteByChallengeId(challengeId);
+
         challengeRepository.deleteByChallengeIdAndUserId(challengeId, userId);
     }
+
 
     // --- getCompletedChallenges ---
     // Pilih versi pertama yang return DTO response yang lebih kaya
@@ -212,31 +255,6 @@ public class ChallengeService {
                     ch.getTimesComplete()
             );
         }).collect(Collectors.toList());
-    }
-
-    // --- getChallengeDetail ---
-    // Menggunakan versi file pertama yang return DTO ChallengeDetailResponse lengkap
-    public ChallengeDetailResponse getChallengeDetail(ChallengeUserRequest request) {
-        Challenge challenge = challengeRepository.findByChallengeIdAndUser_UserId(
-                request.getChallengeId(),
-                request.getUserId()
-        ).orElseThrow(() -> new ResourceNotFoundException("Challenge not found"));
-
-        ChallengeData data = challenge.getChallengeData();
-
-        return new ChallengeDetailResponse(
-                challenge.getChallengeId(),
-                request.getUserId(),
-                data.getChallengeName(),
-                data.getChallengeDesc(),
-                data.getTotalDays(),
-                data.getColor(),
-                data.getChallengeUrl(),
-                challenge.getStartDate(),
-                challenge.getTimesComplete(),
-                challenge.getStatus(),
-                data.getAddictionData().getAddictionName()
-        );
     }
 
     // --- getWeeklyLogs ---

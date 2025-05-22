@@ -1,5 +1,6 @@
 package com.example.breakfreeBE.community.entity;
 
+import com.example.breakfreeBE.challenge.entity.Challenge;
 import com.example.breakfreeBE.userRegistration.entity.User;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -8,8 +9,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
-import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -53,4 +52,5 @@ public class Post {
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL)
     @JsonManagedReference
     private List<BookmarkedPost> bookmarkedPosts;
+
 }

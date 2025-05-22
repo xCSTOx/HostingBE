@@ -39,11 +39,4 @@ public class ChallengeData {
     @JoinColumn(name = "addiction_id", insertable = false, updatable = false)
     private AddictionData addictionData;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumns({
-            @JoinColumn(name = "addiction_id", referencedColumnName = "addiction_id", insertable = false, updatable = false),
-            @JoinColumn(name = "user_id", referencedColumnName = "user_id", insertable = false, updatable = false)
-    })
-    private Addiction addiction;
-
 }

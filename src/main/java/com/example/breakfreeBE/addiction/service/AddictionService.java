@@ -69,51 +69,51 @@ public class AddictionService {
     public static StreakFunFact getStreakFunFact(long streak) {
         if (streak >= 1095) {
             return new StreakFunFact(
-                    "Dalam 3 tahun, Anda menghirup sekitar 31 juta kali, namun berapa kali Anda benar-benar menyadarinya?",
+                    "In 3 years, you breathe about 31 million times, but how many times do you truly notice it?",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactstreak/threeyears.png", "#f5e98c");
         } else if (streak >= 730) {
             return new StreakFunFact(
-                    "Dalam 2 tahun, Anda menghabiskan 730 jam di kamar mandi, waktu yang cukup untuk menguasai instrumen musik!",
+                    "In 2 years, you spend 730 hours in the bathroom, enough time to master a musical instrument!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactstreak/twoyears.png", "#4B7BE5");
         } else if (streak >= 365) {
             return new StreakFunFact(
-                    "Dalam 1 tahun, Anda menghabiskan 1.460 jam (60 hari penuh) hanya untuk scrolling media sosial!",
+                    "In 1 year, you spend 1,460 hours (60 full days) just scrolling through social media!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactstreak/oneyear.png", "#FF6B6B");
         } else if (streak >= 90) {
             return new StreakFunFact(
-                    "Dalam 3 bulan, Anda melihat ponsel rata-rata 14.000 kali, bayangkan jika setiap pandangan adalah ide baru!",
+                    "In 3 months, you look at your phone an average of 14,000 times. Imagine if each glance was a new idea!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactstreak/threemonths.png", "#c1e8e6");
         } else if (streak >= 60) {
             return new StreakFunFact(
-                    "Dalam 2 bulan, rambut Anda tumbuh sekitar 2,5 cm, bukti diam-diam bahwa perubahan selalu terjadi!",
+                    "In 2 months, your hair grows about 2.5 cm, silent proof that change is always happening!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactstreak/twomonths.png", "#d5cd2e");
         } else if (streak >= 30) {
             return new StreakFunFact(
-                    "Dalam 1 bulan, Anda menghabiskan rata-rata 720 jam, namun hanya 26 jam yang benar-benar produktif!",
+                    "In 1 month, you spend an average of 720 hours, but only 26 hours are truly productive!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactstreak/onemonth.png", "#ecf547");
         } else if (streak >= 14) {
             return new StreakFunFact(
-                    "Dalam 2 minggu, sel kulit Anda sepenuhnya berganti yang baru, memberi Anda kesempatan memulai dari awal!",
+                    "In 2 weeks, your skin cells completely renew themselves, giving you a chance to start fresh!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactstreak/twoweeks.png", "#e86666");
         } else if (streak >= 7) {
             return new StreakFunFact(
-                    "Dalam 1 minggu, Anda menelan sekitar 7 liter air liur, cukup untuk mengisi botol minuman olahraga besar!",
+                    "In 1 week, you swallow about 7 liters of saliva, enough to fill a large sports drink bottle!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactstreak/oneweek.png", "#A29BFE");
         } else if (streak >= 5) {
             return new StreakFunFact(
-                    "Dalam 5 hari, Anda menghabiskan rata-rata 5 jam mencari barang yang salah tempat, waktu yang bisa digunakan untuk belajar hal baru!",
+                    "In 5 days, you spend an average of 5 hours looking for misplaced items, time that could be used to learn something new!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactstreak/fivedays.png", "#E17055");
         } else if (streak >= 3) {
             return new StreakFunFact(
-                    "Dalam 3 hari, jantung Anda berdetak sekitar 312.000 kali, bekerja tanpa henti untuk Anda!",
+                    "In 3 days, your heart beats about 312,000 times, working tirelessly for you!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactstreak/threedays.png", "#F8C291");
         } else if (streak >= 1) {
             return new StreakFunFact(
-                    "Dalam 1 hari, jantung Anda memompa darah sejauh 19.000 km, setara dengan setengah keliling bumi!",
+                    "In 1 day, your heart pumps blood for 19,000 km, equivalent to half the Earth's circumference!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactstreak/oneday.png", "#00B894");
         } else {
             return new StreakFunFact(
-                    "Hari ini saja, Anda akan berkedip sekitar 15.000 kali tanpa menyadarinya!",
+                    "Today alone, you will blink about 15,000 times without even realizing it!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactstreak/today.png", "#bbedaf");
         }
     }
@@ -138,62 +138,62 @@ public class AddictionService {
 
         if (totalSaved >= 100_000_000) {
             return new StreakFunFact(
-                    "Rp 100 juta yang diinvestasikan dengan bijak bisa menghasilkan kebebasan finansial yang dinikmati hanya oleh 0,1% populasi dunia!",
+                    "IDR 100 million wisely invested could generate financial freedom enjoyed by only 0.1% of the world's population!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactsaving/100m.png", "#92d19e"
             );
         } else if (totalSaved >= 50_000_000) {
             return new StreakFunFact(
-                    "Rp 50 juta cukup untuk membeli 1.000 pohon yang akan menyerap 500 ton karbon selama masa hidupnya!",
+                    "IDR 50 million is enough to buy 1,000 trees that will absorb 500 tons of carbon during their lifetime!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactsaving/50m.png", "#36ba36"
             );
         } else if (totalSaved >= 20_000_000) {
             return new StreakFunFact(
-                    "Rp 20 juta cukup untuk membeli peralatan elektronik canggih untuk mempermudah hidup anda",
+                    "IDR 20 million is enough to buy advanced electronic equipment to make your life easier",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactsaving/20m.png", "#4682B4"
             );
         } else if (totalSaved >= 10_000_000) {
             return new StreakFunFact(
-                    "Rp 10 juta yang digunakan untuk memulai bisnis kecil memiliki potensi menciptakan aliran pendapatan yang bisa mendukung keluargamu selama beberapa generasi!",
+                    "IDR 10 million used to start a small business has the potential to create income streams that could support your family for generations!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactsaving/10m.png", "#FF8C00"
             );
         } else if (totalSaved >= 5_000_000) {
             return new StreakFunFact(
-                    "Dengan Rp 5 juta, kamu bisa memulai investasi yang dalam 30 tahun bisa tumbuh menjadi dana pensiun Rp 100 juta!",
+                    "With IDR 5 million, you can start investing that could grow into a retirement fund of IDR 100 million in 30 years!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactsaving/5m.png", "#FFD700"
             );
         } else if (totalSaved >= 3_000_000) {
             return new StreakFunFact(
-                    "Rp 3 juta yang digunakan untuk liburan menciptakan kenangan yang akan diingat 10.000 kali lebih lama daripada barang seharga sama!",
+                    "IDR 3 million spent on vacation creates memories that will be remembered 10,000 times longer than items of the same price!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactsaving/3m.png", "#FF69B4"
             );
         } else if (totalSaved >= 1_000_000) {
             return new StreakFunFact(
-                    "Rp 1 juta yang diinvestasikan dalam kursus online dapat memberikanmu keterampilan yang meningkatkan penghasilanmu hingga 300% dalam 5 tahun ke depan!",
+                    "IDR 1 million invested in online courses can give you skills that increase your income by up to 300% in the next 5 years!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactsaving/1m.png", "#7c68fc"
             );
         } else if (totalSaved >= 500_000) {
             return new StreakFunFact(
-                    "Dengan Rp 500.000, kamu bisa membeli sepatu lari yang akan bertahan 1.000 km, setara dengan perjalanan Jakarta-Surabaya pulang pergi!",
+                    "With IDR 500,000, you can buy running shoes that will last 1,000 km, equivalent to a Jakarta-Surabaya round trip!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactsaving/500k.png", "#5caff2"
             );
         } else if (totalSaved >= 100_000) {
             return new StreakFunFact(
-                    "Rp 100.000 cukup untuk membeli bahan makanan yang menghasilkan 20 kali lipat energi dibanding fast food seharga sama!",
+                    "IDR 100,000 is enough to buy ingredients that produce 20 times more energy than fast food of the same price!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactsaving/100k.png", "#f7af28"
             );
         } else if (totalSaved >= 50_000) {
             return new StreakFunFact(
-                    "Rp 50.000 bisa membeli buku bekas yang berisi pengetahuan bernilai jutaan rupiah untuk masa depanmu!",
+                    "IDR 50,000 can buy used books containing knowledge worth millions of rupiah for your future!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactsaving/50k.png", "#ed8a42"
             );
         } else if (totalSaved >= 10_000) {
             return new StreakFunFact(
-                    "Dengan Rp 10.000, kamu bisa membeli sebuah buku catatan yang mampu menampung lebih dari 5.000 ide brilian yang mungkin mengubah hidupmu!",
+                    "With IDR 10,000, you can buy a notebook capable of holding more than 5,000 brilliant ideas that might change your life!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactsaving/10k.png", "#00CED1"
             );
         } else {
             return new StreakFunFact(
-                    "Rp 0 adalah jumlah yang sama yang dimiliki Jeff Bezos dan Bill Gates saat mereka memulai bisnis pertama mereka!",
+                    "IDR 0 is the same amount Jeff Bezos and Bill Gates had when they started their first businesses!",
                     "https://sveclbpormdxqkyxblhh.supabase.co/storage/v1/object/public/funfact/funfactsaving/0k.png", "#A9A9A9"
             );
         }
