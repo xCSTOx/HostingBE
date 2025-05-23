@@ -37,6 +37,10 @@ public interface ChallengeRepository extends JpaRepository<Challenge, String> {
 
     boolean existsByChallengeIdAndUserId(String challengeId, String userId);
 
+    @Query("SELECT COUNT(c) FROM Challenge c WHERE c.user.userId = :userId AND c.challengeData.challengeDataId = :challengeDataId AND c.status = 'completed'")
+    int countCompletedByUserAndChallenge(@Param("userId") String userId, @Param("challengeDataId") String challengeDataId);
+
+    List<Challenge> findByUser_UserIdAndChallengeData_ChallengeDataIdAndStatus(String userId, String challengeDataId, String status);
 
 
 

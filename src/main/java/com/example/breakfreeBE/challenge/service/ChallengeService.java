@@ -50,37 +50,36 @@ public class ChallengeService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // Ambil semua addictionId user
         List<String> addictionIds = user.getAddictions()
                 .stream()
                 .map(Addiction::getAddictionId)
                 .collect(Collectors.toList());
 
-        // Jika user tidak punya addiction, return list kosong
         if (addictionIds.isEmpty()) {
             return Collections.emptyList();
         }
 
-        // Ambil semua challenges yang terkait dengan addictionId user (multiple addiction)
         List<ChallengeData> allChallengesByAddiction = challengeDataRepository.findByAddictionData_AddictionIdIn(addictionIds);
 
-        // Ambil list challengeDataId yang sudah diikuti user
-        List<String> joinedChallengeDataIds = challengeRepository.findByUser_UserId(userId)
-                .stream()
-                .map(challenge -> challenge.getChallengeData().getChallengeDataId())
-                .collect(Collectors.toList());
-
-        // Filter challenge yang belum diikuti user dan mapping ke response
         return allChallengesByAddiction.stream()
-                .filter(cd -> !joinedChallengeDataIds.contains(cd.getChallengeDataId()))
-                .map(cd -> new DailyChallengeResponse(
+                // Filter hanya yang TIDAK sedang diikuti (status ONGOING)
+                .filter(cd -> challengeRepository.findByUser_UserIdAndChallengeData_ChallengeDataIdAndStatus(
+                        userId,
                         cd.getChallengeDataId(),
-                        cd.getChallengeName(),
-                        cd.getChallengeDesc(),
-                        cd.getTotalDays(),
-                        cd.getColor(),
-                        cd.getChallengeUrl()
-                ))
+                        "ongoing"
+                ).isEmpty())
+                .map(cd -> {
+                    int timesComplete = challengeRepository.countCompletedByUserAndChallenge(userId, cd.getChallengeDataId());
+                    return new DailyChallengeResponse(
+                            cd.getChallengeDataId(),
+                            cd.getChallengeName(),
+                            cd.getChallengeDesc(),
+                            cd.getTotalDays(),
+                            cd.getColor(),
+                            cd.getChallengeUrl(),
+                            timesComplete
+                    );
+                })
                 .collect(Collectors.toList());
     }
 
@@ -96,6 +95,12 @@ public class ChallengeService {
             boolean todayLogged = c.getProgressList() != null &&
                     c.getProgressList().stream().anyMatch(p -> isToday(p.getProgressDate()));
 
+            // Hitung timesComplete berdasarkan challengeDataId & userId dengan status COMPLETED
+            int timesComplete = challengeRepository.countCompletedByUserAndChallenge(
+                    userId,
+                    c.getChallengeData().getChallengeDataId()
+            );
+
             return new ChallengeOngoingResponse(
                     c.getChallengeId(),
                     c.getChallengeData().getChallengeName(),
@@ -104,7 +109,7 @@ public class ChallengeService {
                     c.getChallengeData().getChallengeUrl(),
                     c.getStartDate(),
                     c.getChallengeData().getTotalDays(),
-                    c.getTimesComplete(),
+                    timesComplete,
                     weeklyLogs,
                     todayLogged
             );
@@ -122,9 +127,14 @@ public class ChallengeService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        boolean alreadyJoined = challengeRepository.findByChallengeData_ChallengeDataIdAndUser_UserId(challengeDataId, userId).isPresent();
-        if (alreadyJoined) {
-            throw new IllegalStateException("User already joined this challenge");
+        boolean hasOngoingChallenge = challengeRepository
+                .findByUser_UserIdAndChallengeData_ChallengeDataIdAndStatus(userId, challengeDataId, "ongoing")
+                .stream()
+                .findAny()
+                .isPresent();
+
+        if (hasOngoingChallenge) {
+            throw new IllegalStateException("User is already participating in this challenge");
         }
 
         Challenge challenge = new Challenge();

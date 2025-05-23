@@ -12,4 +12,5 @@ public class DailyChallengeResponse {
     private Integer totalDays;
     private String color;
     private String challengeUrl;
+    private int timesComplete;
 }
