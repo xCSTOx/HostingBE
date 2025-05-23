@@ -250,22 +250,31 @@ public class ChallengeService {
     // --- getCompletedChallenges ---
     // Pilih versi pertama yang return DTO response yang lebih kaya
     public List<ChallengeCompletedResponse> getCompletedChallenges(String userId) {
-        List<Challenge> challenges = challengeRepository.findByUser_UserIdAndStatus(userId, "completed");
+        List<Challenge> completedChallenges = challengeRepository.findByUser_UserIdAndStatus(userId, "completed");
 
-        return challenges.stream().map(ch -> {
-            ChallengeData data = ch.getChallengeData();
-            return new ChallengeCompletedResponse(
-                    ch.getChallengeId(),
-                    data.getChallengeName(),
-                    data.getChallengeDesc(),
-                    data.getChallengeUrl(),
-                    data.getColor(),
-                    data.getTotalDays(),
-                    ch.getStartDate(),
-                    ch.getTimesComplete()
-            );
-        }).collect(Collectors.toList());
+        Map<String, List<Challenge>> grouped = completedChallenges.stream()
+                .collect(Collectors.groupingBy(c -> c.getChallengeData().getChallengeDataId()));
+
+        return grouped.entrySet().stream()
+                .map(entry -> {
+                    Challenge representative = entry.getValue().get(0); // Salah satu challenge sebagai referensi
+                    ChallengeData data = representative.getChallengeData();
+
+                    return new ChallengeCompletedResponse(
+                            data.getChallengeDataId(),
+                            data.getChallengeName(),
+                            data.getChallengeDesc(),
+                            data.getChallengeUrl(),
+                            data.getColor(),
+                            data.getTotalDays(),
+                            representative.getStartDate(),
+                            entry.getValue().size()
+                    );
+                })
+                .toList();
     }
+
+
 
     // --- getWeeklyLogs ---
     // Metode tambahan dari file pertama
