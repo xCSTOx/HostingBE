@@ -31,9 +31,4 @@ public interface PostRepository extends JpaRepository<Post, String> {
     @Query("SELECT COUNT(a) FROM Post a JOIN a.user u WHERE u.userId = :userId")
     long countByUserId(String userId);
 
-    @Transactional
-    @Modifying
-    @Query("DELETE FROM Post p WHERE p.challengeId = :challengeId")
-    void deleteByChallengeId(String challengeId);
-
 }
