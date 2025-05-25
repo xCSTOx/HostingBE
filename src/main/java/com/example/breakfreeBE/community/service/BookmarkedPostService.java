@@ -8,6 +8,7 @@ import com.example.breakfreeBE.achievement.repository.AchievementUserRepository;
 import com.example.breakfreeBE.community.dto.BookmarkedRequestDTO;
 import com.example.breakfreeBE.community.dto.PostDTO;
 import com.example.breakfreeBE.community.entity.BookmarkedPost;
+import com.example.breakfreeBE.community.entity.Post;
 import com.example.breakfreeBE.community.repository.BookmarkedPostRepository;
 import com.example.breakfreeBE.community.repository.PostRepository;
 import com.example.breakfreeBE.userRegistration.entity.User;
@@ -123,15 +124,13 @@ public class BookmarkedPostService {
     }
 
     public List<PostDTO> viewBookmarkedPosts(String userId) {
-        List<BookmarkedPost> bookmarks = bookmarkedPostRepository.findByUserId(userId);
+        List<Post> bookmarks = postRepository.findBookmarkedPostsByUserId(userId);
         List<PostDTO> result = new ArrayList<>();
 
-        for (BookmarkedPost bookmark : bookmarks) {
+        for (Post bookmark : bookmarks) {
             postRepository.findById(bookmark.getPostId()).ifPresent(post -> {
                 PostDTO dto = postService.convertToDTOP(post);
-                if (dto.isBookmarked()) {
-                    result.add(dto);
-                }
+                result.add(dto);
             });
         }
 
