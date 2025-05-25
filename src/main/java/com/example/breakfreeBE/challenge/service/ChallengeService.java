@@ -238,10 +238,8 @@ public class ChallengeService {
 
         boolean exists = challengeRepository.existsByChallengeIdAndUserId(challengeId, userId);
         if (!exists) throw new EntityNotFoundException("Challenge not found");
-        // Perbaikan delete progress
-        challengeProgressRepository.deleteByChallengeId(challengeId);
 
-        postRepository.deleteByChallengeId(challengeId);
+        challengeProgressRepository.deleteByChallengeId(challengeId);
 
         challengeRepository.deleteByChallengeIdAndUserId(challengeId, userId);
     }
