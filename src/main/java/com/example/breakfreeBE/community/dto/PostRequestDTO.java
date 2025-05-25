@@ -8,7 +8,7 @@ public class PostRequestDTO {
     private String postId;
     private String achievementId;
     private String addictionId;
-    private String challengeId;
+    private String challengeDataId;
     private String postText;
     private Long postDate;
 }

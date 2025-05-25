@@ -129,7 +129,7 @@ public class BookmarkedPostService {
 
         for (Post bookmark : bookmarks) {
             postRepository.findById(bookmark.getPostId()).ifPresent(post -> {
-                PostDTO dto = postService.convertToDTOP(post);
+                PostDTO dto = postService.convertToDTOP(post, userId);
                 result.add(dto);
             });
         }

@@ -94,14 +94,14 @@ public class PostService {
             post.setAddictionId(postRequestDTO.getAddictionId());
         }
 
-        if (postRequestDTO.getChallengeId() != null) {
-            post.setChallengeId(postRequestDTO.getChallengeId());
+        if (postRequestDTO.getChallengeDataId() != null) {
+            post.setChallengeDataId(postRequestDTO.getChallengeDataId());
         }
 
         Post savedPost = postRepository.save(post);
 
         Map<String, Object> result = new HashMap<>();
-        result.put("post", convertToDTOP(savedPost));
+        result.put("post", convertToDTOP(savedPost, userId));
 
         PostAchievement(userId, result);
 
@@ -178,22 +178,32 @@ public class PostService {
             Post post = postOptional.get();
 
             if (post.getUserId().equals(postRequestDTO.getUserId())) {
+                // Update post text
                 post.setPostText(postRequestDTO.getPostText());
 
-                if (postRequestDTO.getAchievementId() != null) {
+                // Handle achievementId - set to null if not provided in request
+                if (postRequestDTO.getAchievementId() != null && !postRequestDTO.getAchievementId().isBlank()) {
                     post.setAchievementId(postRequestDTO.getAchievementId());
+                } else {
+                    post.setAchievementId(null);
                 }
 
-                if (postRequestDTO.getAddictionId() != null) {
+                // Handle addictionId - set to null if not provided in request
+                if (postRequestDTO.getAddictionId() != null && !postRequestDTO.getAddictionId().isBlank()) {
                     post.setAddictionId(postRequestDTO.getAddictionId());
+                } else {
+                    post.setAddictionId(null);
                 }
 
-                if (postRequestDTO.getChallengeId() != null) {
-                    post.setChallengeId(postRequestDTO.getChallengeId());
+                // Handle challengeId - set to null if not provided in request
+                if (postRequestDTO.getChallengeDataId() != null && !postRequestDTO.getChallengeDataId().isBlank()) {
+                    post.setChallengeDataId(postRequestDTO.getChallengeDataId());
+                } else {
+                    post.setChallengeDataId(null);
                 }
 
                 Post updatedPost = postRepository.save(post);
-                return convertToDTOP(updatedPost);
+                return convertToDTOP(updatedPost, postRequestDTO.getUserId());
             } else {
                 throw new RuntimeException("User is not authorized to update this post");
             }
@@ -207,24 +217,24 @@ public class PostService {
 
         if (postOptional.isPresent()) {
             Post post = postOptional.get();
-            return convertToDTOP(post);
+            return convertToDTOP(post, userId);
         } else {
             throw new RuntimeException("Post not found with id: " + postId);
         }
     }
 
-    public List<PostDTO> getAllPosts() {
+    public List<PostDTO> getAllPosts(String userId) {
         List<Post> posts = postRepository.findAll(Sort.by(Sort.Direction.DESC, "postId"));
 
         return posts.stream()
-                .map(this::convertToDTOP)
+                .map(post -> convertToDTOP(post, userId))
                 .collect(Collectors.toList());
     }
 
     public List<PostDTO> getPostsByUserId(String userId) {
         List<Post> posts = postRepository.findByUserId(userId);
         return posts.stream()
-                .map(this::convertToDTOP)
+                .map(post -> convertToDTOP(post, userId))
                 .collect(Collectors.toList());
     }
 
@@ -241,13 +251,14 @@ public class PostService {
         }
     }
 
-    public PostDTO convertToDTOP(Post post) {
+    public PostDTO convertToDTOP(Post post, String currentUserId) {
         PostDTO dto = new PostDTO();
         dto.setPostId(post.getPostId());
         dto.setPostText(post.getPostText());
         dto.setPostDate(post.getPostDate());
 
-        boolean isBookmarked = bookmarkedPostRepository.existsByUserIdAndPostId(post.getUserId(), post.getPostId());
+        // Check if the current user has bookmarked this post
+        boolean isBookmarked = bookmarkedPostRepository.existsByUserIdAndPostId(currentUserId, post.getPostId());
         dto.setBookmarked(isBookmarked);
 
         userRepository.findById(post.getUserId()).ifPresent(user -> {
@@ -299,21 +310,23 @@ public class PostService {
                     });
         }
 
-        if (post.getChallengeId() != null) {
-            challengeRepository.findById(post.getChallengeId())
-                    .ifPresent(challenge -> {
-                        challengeDataRepository.findById(challenge.getChallengeDataId())
-                                .ifPresent(challengeData -> {
-                                    PostDTO.ChallengeDataDTO challengeDataDTO = new PostDTO.ChallengeDataDTO();
-                                    challengeDataDTO.setChallengeId(challenge.getChallengeId());
-                                    challengeDataDTO.setChallengeName(challengeData.getChallengeName());
-                                    challengeDataDTO.setChallengeUrl(challengeData.getChallengeUrl());
-                                    challengeDataDTO.setColor(challengeData.getColor());
-                                    dto.setChallengeData(challengeDataDTO);
-                                });
+        if (post.getChallengeDataId() != null) {
+            challengeDataRepository.findById(post.getChallengeDataId())
+                    .ifPresent(challengeData -> {
+                        PostDTO.ChallengeDataDTO challengeDataDTO = new PostDTO.ChallengeDataDTO();
+                        challengeDataDTO.setChallengeDataId(challengeData.getChallengeDataId());
+                        challengeDataDTO.setChallengeName(challengeData.getChallengeName());
+                        challengeDataDTO.setChallengeUrl(challengeData.getChallengeUrl());
+                        challengeDataDTO.setColor(challengeData.getColor());
+                        dto.setChallengeData(challengeDataDTO);
                     });
         }
 
         return dto;
+    }
+
+    // Method overload untuk backward compatibility (jika ada yang masih menggunakan tanpa userId)
+    public PostDTO convertToDTOP(Post post) {
+        return convertToDTOP(post, post.getUserId());
     }
 }

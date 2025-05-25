@@ -36,7 +36,7 @@ public class PostDTO {
 
     @Data
     public static class ChallengeDataDTO {
-        private String challengeId;
+        private String challengeDataId;
         private String challengeName;
         private String challengeUrl;
         private String color;

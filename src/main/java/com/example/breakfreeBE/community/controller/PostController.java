@@ -21,10 +21,18 @@ public class PostController {
     @Autowired
     private PostService postService;
 
-    @GetMapping("/view")
-    public ResponseEntity<BaseResponse<List<PostDTO>>> getAllPosts() {
+    @PostMapping("/view")
+    public ResponseEntity<BaseResponse<List<PostDTO>>> getAllPosts(@RequestBody Map<String, String> requestBody) {
         try {
-            List<PostDTO> posts = postService.getAllPosts();
+            String userId = requestBody.get("userId");
+
+            if (userId == null || userId.isBlank()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                        new BaseResponse<>(new MetaResponse(false, "Invalid request: userId missing"), null)
+                );
+            }
+
+            List<PostDTO> posts = postService.getAllPosts(userId);
             return ResponseEntity.ok(
                     new BaseResponse<>(new MetaResponse(true, "Posts retrieved successfully"), posts)
             );
@@ -34,6 +42,7 @@ public class PostController {
             );
         }
     }
+
 
     @PostMapping("/create")
     public ResponseEntity<BaseResponse<Map<String, Object>>> createPost(@RequestBody PostRequestDTO postRequestDTO) {
@@ -96,19 +105,24 @@ public class PostController {
     }
 
     @PutMapping("/update")
-    public ResponseEntity<BaseResponse<Void>> updatePost(@RequestBody PostRequestDTO postRequestDTO) {
+    public ResponseEntity<BaseResponse<PostDTO>> updatePost(@RequestBody PostRequestDTO postRequestDTO) {
         try {
             if (postRequestDTO.getUserId() == null || postRequestDTO.getPostText() == null
-                    || postRequestDTO.getUserId().isBlank() || postRequestDTO.getPostText().isBlank()) {
+                    || postRequestDTO.getUserId().isBlank() || postRequestDTO.getPostText().isBlank()
+                    || postRequestDTO.getPostId() == null || postRequestDTO.getPostId().isBlank()) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-                        new BaseResponse<>(new MetaResponse(false, "Post Not Found"), null)
+                        new BaseResponse<>(new MetaResponse(false, "Required fields are missing"), null)
                 );
             }
 
             PostDTO updatedPost = postService.updatePost(postRequestDTO);
 
             return ResponseEntity.ok(
-                    new BaseResponse<>(new MetaResponse(true, "Post updated successfully"), null)
+                    new BaseResponse<>(new MetaResponse(true, "Post updated successfully"), updatedPost)
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    new BaseResponse<>(new MetaResponse(false, e.getMessage()), null)
             );
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(

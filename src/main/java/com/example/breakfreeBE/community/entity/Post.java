@@ -36,8 +36,8 @@ public class Post {
     @Column(name = "addiction_id", length = 6)
     private String addictionId;
 
-    @Column(name = "challenge_id", length = 6)
-    private String challengeId;
+    @Column(name = "challenge_data_id", length = 6)
+    private String challengeDataId;
 
     // Relationships
     @ManyToOne

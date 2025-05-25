@@ -129,9 +129,9 @@ public class AddictionController {
         }
 
         Map<String, Object> responseData = new HashMap<>();
-        responseData.put("funfact", savingFunFact.fact);
-        responseData.put("image_url", savingFunFact.imageUrl);
-        responseData.put("color", savingFunFact.bgColor);
+        responseData.put("fact", savingFunFact.fact);
+        responseData.put("imageUrl", savingFunFact.imageUrl);
+        responseData.put("bgColor", savingFunFact.bgColor);
 
         return ResponseEntity.ok(
                 new BaseResponse<>(new MetaResponse(true, "Successfully create funfact saving"), responseData)
