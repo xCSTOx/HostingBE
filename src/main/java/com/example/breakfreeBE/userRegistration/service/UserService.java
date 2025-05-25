@@ -107,45 +107,48 @@ public class UserService {
     }
 
     @Transactional
-    public BaseResponse<Object> updateProfile (UserUpdateRequest request) {
+    public BaseResponse<Object> updateProfile(UserUpdateRequest request) {
         Optional<User> optionalUser = userRepository.findById(request.getUserId());
-        Optional<Avatar> optionalAvatar = avatarRepository.findById(request.getAvatarId());
-
-        if (optionalUser.isEmpty() || optionalAvatar.isEmpty()) {
-            return BaseResponse.error("Update failed: User or Avatar not found");
+        if (optionalUser.isEmpty()) {
+            return BaseResponse.error("Update failed: User not found");
         }
 
         User user = optionalUser.get();
-        Avatar avatar = optionalAvatar.get();
-
-        // Cek apakah username sudah dipakai oleh user lain
-        if (!user.getUsername().equals(request.getUsername())
-                && userRepository.existsByUsername(request.getUsername())) {
-            return BaseResponse.error("Username is already taken");
-        }
-
         StringBuilder updateMessages = new StringBuilder();
 
-        // Update username jika berbeda
-        if (!user.getUsername().equals(request.getUsername())) {
-            user.setUsername(request.getUsername());
-            updateMessages.append("Username updated successfully");
+        if (request.getUsername() != null) {
+            if (!user.getUsername().equals(request.getUsername())) {
+                if (userRepository.existsByUsername(request.getUsername())) {
+                    return BaseResponse.error("Username is already taken");
+                }
+                user.setUsername(request.getUsername());
+                updateMessages.append("Username updated successfully");
+            }
         }
 
-        // Update avatar jika berbeda
-        if (!user.getAvatar().getAvatarId().equals(avatar.getAvatarId())) {
-            user.setAvatar(avatar);
-            if (updateMessages.length() > 0) updateMessages.append("; ");
-            updateMessages.append("Avatar updated successfully");
+        if (request.getAvatarId() != null) {
+            Optional<Avatar> optionalAvatar = avatarRepository.findById(request.getAvatarId());
+            if (optionalAvatar.isEmpty()) {
+                return BaseResponse.error("Avatar not found");
+            }
+            Avatar avatar = optionalAvatar.get();
+
+            if (!user.getAvatar().getAvatarId().equals(avatar.getAvatarId())) {
+                user.setAvatar(avatar);
+                if (updateMessages.length() > 0) updateMessages.append("; ");
+                updateMessages.append("Avatar updated successfully");
+            }
+        }
+
+        if (updateMessages.length() == 0) {
+            return BaseResponse.success("No changes made", null);
         }
 
         userRepository.save(user);
 
-        // Cek apakah user baru pertama kali update profil dan dapat achievement AC0014
         List<AchievementResponse> unlocked = unlockAchievementIfFirstProfileUpdate(user);
-
         if (!unlocked.isEmpty()) {
-            AchievementResponse unlockedAchievement = unlocked.get(0); // diasumsikan hanya 1 achievement
+            AchievementResponse unlockedAchievement = unlocked.get(0);
             Map<String, Object> achievementMap = new LinkedHashMap<>();
             achievementMap.put("achievementDesc", unlockedAchievement.getAchievementDesc());
             achievementMap.put("achievementId", unlockedAchievement.getAchievementId());
@@ -155,10 +158,10 @@ public class UserService {
             Map<String, Object> responseData = new LinkedHashMap<>();
             responseData.put("achievement", achievementMap);
 
-            return BaseResponse.success("User updated successfully; Achievement Earned!", responseData);
+            return BaseResponse.success(updateMessages + "; Achievement Earned!", responseData);
         }
 
-        return BaseResponse.success("User updated successfully", null);
+        return BaseResponse.success(updateMessages.toString(), null);
     }
 
     private List<AchievementResponse> unlockAchievementIfFirstProfileUpdate(User user) {
