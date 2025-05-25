@@ -22,7 +22,7 @@ public class ChallengeController {
     @Autowired
     private ChallengeService challengeService;
 
-    @PostMapping("/challenges/data")
+    @PostMapping("/data")
     public BaseResponse<List<DailyChallengeResponse>> getAllDailyChallenges(@RequestBody ChallengeUserRequest request) {
         List<DailyChallengeResponse> challenges = challengeService.getAllDailyChallenges(request.getUserId());
         return BaseResponse.success("All challenges retrieved", challenges);
